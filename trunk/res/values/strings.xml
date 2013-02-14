@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Pencil</string>
+    <string name="menu_settings">Coming soon&#8230;</string>
+	<string name="pencil_start_message">Tap to start</string>
+	<string name="pencil_restart_message">Tap to restart</string>
+	
+</resources>
