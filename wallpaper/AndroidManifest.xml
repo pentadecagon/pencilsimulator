@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.pencilwallpaper">
+
+    <uses-sdk
+        android:minSdkVersion="10"
+        android:targetSdkVersion="17" />
+    <uses-feature android:name="android.software.live_wallpaper" />
+
+    <application
+        android:allowBackup="true"
+        android:label="@string/wallpapers"
+        android:icon="@drawable/ic_launcher_wallpaper">
+
+        <service
+            android:label="@string/wallpaper_pencil"
+            android:name="com.pencilwallpaper.PencilWallpaper"
+            android:permission="android.permission.BIND_WALLPAPER">
+            <intent-filter>
+                <action android:name="android.service.wallpaper.WallpaperService" />
+            </intent-filter>
+            <meta-data android:name="android.service.wallpaper" android:resource="@xml/pencil" />
+        </service>
+
+    </application>
+</manifest>
