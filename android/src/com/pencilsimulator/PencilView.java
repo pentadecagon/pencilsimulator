@@ -1,19 +1,17 @@
 package com.pencilsimulator;
 
+import com.pencilmotionsimulator.MotionSimulator;
+
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.drawable.BitmapDrawable;
-import android.os.Bundle;
 import android.os.Handler;
-import android.os.Message;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.view.View;
-import android.widget.TextView;
 
 /** Show a pencil balanced on its tip, falling over. */
 
@@ -61,10 +59,8 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         /*
          * State-tracking constants
          */
-        public static final int STATE_LOSE = 1;
-        public static final int STATE_PAUSE = 2;
-        public static final int STATE_READY = 3;
-        public static final int STATE_RUNNING = 4;
+        public static final int STATE_READY = 1;
+        public static final int STATE_RUNNING = 2;
 
         /**
          * Current height of the surface/canvas.
@@ -79,9 +75,6 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
          * @see #setSurfaceSize
          */
         private int mCanvasWidth = 1;
-        
-        /** Message handler used by thread to interact with TextView */
-        private Handler mHandler;
 
         /** The state of the game. One of READY, RUNNING, PAUSE or LOSE */
         private int mMode;
@@ -93,15 +86,15 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         private SurfaceHolder mSurfaceHolder;
         
         /** Used to figure out elapsed time between frames */
-        private long mLastTime;
+        private long mLastTime = 0;
         
         private BitmapDrawable pencilDrawable = null;
 
         public PencilThread(SurfaceHolder surfaceHolder, Context context,
                 Handler handler) {
+        	
         	mSurfaceHolder = surfaceHolder;
-            mHandler = handler;
-
+        	
             initializeBitmap(context);
         }
         
@@ -118,21 +111,12 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         public void doStart() {
 
             synchronized (mSurfaceHolder) {
-
-            	//hide the information message
-            	Message msg = mHandler.obtainMessage();
-                Bundle b = new Bundle();
-                b.putString("text", "");
-                b.putInt("viz", View.GONE);
-                msg.setData(b);
-                mHandler.sendMessage(msg);
-            	
             	//initialize position of pencil
             	tiltAngle = INITIAL_TILT_ANGLE;
             	angularVelocity = INITIAL_ANGULAR_VELOCITY;
             	
             	//start clock
-            	mLastTime = System.currentTimeMillis() + 1000;
+            	mLastTime = System.currentTimeMillis() + 100;
             	
             	//set the game running
                 setState(STATE_RUNNING);
@@ -223,8 +207,6 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
          */
         private float calculateMaxTiltAngle()
         {
-        	//return (float) Math.asin((0.5 * mCanvasWidth/ ((double) pencilDisplayLength)));
-        	
         	//approximate contact point with the side, as measured from tip end of pencil
         	double contactPointDistance = Math.sqrt((0.95 * pencilDisplayLength) * (0.95 * pencilDisplayLength) + (0.5 * pencilDisplayWidth) * (0.5 * pencilDisplayWidth));
         	
@@ -290,6 +272,13 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
          * Calculate the angular displacement and speed of the pencil
          */
         private void updatePhysics() {
+        	
+        	//sometimes we reach this point before mLastTime has been initialized: if this is so, initialize it
+        	if (mLastTime == 0)
+        	{
+        		mLastTime = System.currentTimeMillis() + 100;
+        		return;
+        	}
 	
         	long now = System.currentTimeMillis();
         	// Do nothing if mLastTime is in the future.
@@ -300,7 +289,6 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
             double elapsed = (now - mLastTime) / 1000.0;
 
             //do calculations
-            //Log.d("pencil", "calculating new position and velocity with g = "+GRAVITY_REDUCTION_FACTOR*g+", theta="+theta);
             double[] motionArray = motionSimulator.calc(tiltAngle, angularVelocity, GRAVITY_REDUCTION_FACTOR*g, theta, elapsed);
             tiltAngle = motionArray[0];
             angularVelocity = motionArray[1];
@@ -329,6 +317,12 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         	return (Math.abs(tiltAngle) > maxTiltAngle);
         }
 
+        /**
+         * Update the acceleration parameters used by the thread.
+         * 
+         * @param double g Magnitude of gravitational acceleration
+         * @param double theta Angle of direction of gravitational force to the negative y axis
+         */
         public void setAccelerationData(double g, double theta)
         {
         	this.g = g;
@@ -336,9 +330,6 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         }
     }
     
-    /** Pointer to the text view to display "Paused.." etc. */
-    private TextView mStatusText;
-
     /** The thread that actually draws the animation */
     public PencilThread thread = null;
 
@@ -350,13 +341,6 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         holder.addCallback(this);
 
         setFocusable(true); // make sure we get key events
-    }
-
-    /**
-     * Installs a pointer to the text view used for messages.
-     */
-    public void setTextView(TextView textView) {
-        mStatusText = textView;
     }
 
     /* Callback invoked when the surface dimensions change. */
@@ -379,12 +363,6 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
     	
     	// create thread
         thread = new PencilThread(holder, getContext(), new Handler() {
-            @Override
-            public void handleMessage(Message m) {
-            	mStatusText.setVisibility(m.getData().getInt("viz"));
-                mStatusText.setText(m.getData().getString("text"));   					
-
-            }
         });
         thread.setState(PencilThread.STATE_RUNNING);
 
