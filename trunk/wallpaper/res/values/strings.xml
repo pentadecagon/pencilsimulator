@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <!-- General -->
+    <skip />
+    <!-- Application name -->
+    <string name="wallpapers">Pencil Wallpaper</string>
+
+    <!-- Wallpaper showing a pencil -->
+    <string name="wallpaper_pencil">Pencil Wallpaper</string>
+
+</resources>
