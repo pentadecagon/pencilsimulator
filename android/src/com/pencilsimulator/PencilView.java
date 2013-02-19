@@ -104,24 +104,6 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         	pencilDrawable = new BitmapDrawable(res, BitmapFactory.decodeResource(res, R.drawable.pencil));
         	pencilDrawable.setAntiAlias(true);
         }
-        
-        /**
-         * Starts the game
-         */
-        public void doStart() {
-
-            synchronized (mSurfaceHolder) {
-            	//initialize position of pencil
-            	tiltAngle = INITIAL_TILT_ANGLE;
-            	angularVelocity = INITIAL_ANGULAR_VELOCITY;
-            	
-            	//start clock
-            	mLastTime = System.currentTimeMillis() + 100;
-            	
-            	//set the game running
-                setState(STATE_RUNNING);
-            }
-        }
 
     	/**
          * Run the game
@@ -218,8 +200,6 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         	return angle;
         	
         }
-        
-
 
         /**
          * Draw the scene
@@ -273,7 +253,7 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
          */
         private void updatePhysics() {
         	
-        	//sometimes we reach this point before mLastTime has been initialized: if this is so, initialize it
+        	//initialize mLastTime
         	if (mLastTime == 0)
         	{
         		mLastTime = System.currentTimeMillis() + 100;
@@ -293,7 +273,7 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
             tiltAngle = motionArray[0];
             angularVelocity = motionArray[1];
             
-            //if the pencil has fallen over horizontally, indicate that the game is over and set it to "lose" mode
+            //if the pencil has reached the maximum tilt angle, don't let it go any further
             if (hasReachedMaxTiltAngle(tiltAngle))
             {
             	//make sure the pencil is shown as lying flat on the ground
