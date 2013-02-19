@@ -8,7 +8,6 @@ import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
-import android.widget.TextView;
 
 /** Show a pencil balanced on its tip, falling over. */
 
@@ -49,9 +48,6 @@ public class PencilActivity extends Activity implements SensorEventListener {
 		//get a handle to the view that will display the animation
 		mPencilView = (PencilView) findViewById(R.id.pencil);
 
-		//handle to the TextView used for messages
-        mPencilView.setTextView((TextView) findViewById(R.id.text));
-        
         //initialize motion sensor
         sensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
 		accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);

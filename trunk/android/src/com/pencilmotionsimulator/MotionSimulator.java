@@ -1,4 +1,4 @@
-package com.pencilsimulator;
+package com.pencilmotionsimulator;
 
 /** calculate current angular displacement and velocity of falling pencil */
 
