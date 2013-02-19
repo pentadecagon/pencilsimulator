@@ -10,8 +10,6 @@ import android.util.Log;
 import android.view.Menu;
 import android.widget.TextView;
 
-import com.pencilsimulator.PencilView.PencilThread;
-
 /** Show a pencil balanced on its tip, falling over. */
 
 public class PencilActivity extends Activity implements SensorEventListener {
@@ -94,18 +92,12 @@ public class PencilActivity extends Activity implements SensorEventListener {
 		}
 		
 		if (gravityData != null) {
-			/*Log.d("sensor", "found geo array");
-			Log.d("sensor", "grav x="+gravityData[0]);
-			Log.d("sensor", "grav y="+gravityData[1]);
-			Log.d("sensor", "grav z="+gravityData[2]);*/
-			
 			//convert x, y to polar coordinates
 			double g = Math.sqrt((gravityData[0] * gravityData[0] + gravityData[1] * gravityData[1]));
 			double theta = Math.atan2(gravityData[0], gravityData[1]);
 
 			if (mPencilView.thread != null)
 			{
-				//Log.d("pencil", "updating gravity data in thread to g="+g+", theta="+theta);
 				mPencilView.thread.setAccelerationData(g, theta);
 			}
 			
