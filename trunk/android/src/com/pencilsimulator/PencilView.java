@@ -252,15 +252,24 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
          * Calculate the angular displacement and speed of the pencil
          */
         private void updatePhysics() {
-        	
+
         	//initialize mLastTime
         	if (mLastTime == 0)
         	{
         		mLastTime = System.currentTimeMillis() + 100;
         		return;
         	}
-	
+
         	long now = System.currentTimeMillis();
+        	
+        	//if pencil is at rest such that it's impossible to move it, don't do anything else
+        	if (isAtRest())
+        	{
+        		mLastTime = now;
+        		angularVelocity = 0.0;
+        		return;
+        	}
+
         	// Do nothing if mLastTime is in the future.
             // This allows the game-start to delay the start of the physics
             // by 100ms or whatever.
@@ -272,29 +281,49 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
             double[] motionArray = motionSimulator.calc(tiltAngle, angularVelocity, GRAVITY_REDUCTION_FACTOR*g, theta, elapsed);
             tiltAngle = motionArray[0];
             angularVelocity = motionArray[1];
-            
+
             //if the pencil has reached the maximum tilt angle, don't let it go any further
-            if (hasReachedMaxTiltAngle(tiltAngle))
+            if (Math.abs(tiltAngle) > maxTiltAngle)
             {
-            	//make sure the pencil is shown as lying flat on the ground
+            	//make sure the pencil is shown as lying on the side
             	tiltAngle = (tiltAngle > 0) ? maxTiltAngle : - maxTiltAngle;
-            	//make pencil bounce off side when it hits it
-            	angularVelocity = -0.5 * angularVelocity;
+            	
+            	if (Math.abs(angularVelocity) < 0.01)
+            	{
+            		//stop pencil if it's moving too slowly
+            		angularVelocity = 0.0;
+            	} else if ((tiltAngle > 0 && angularVelocity > 0) || (tiltAngle < 0 && angularVelocity < 0))
+            	{
+            		//make pencil bounce off side
+            		angularVelocity = -0.5 * angularVelocity;
+            	}
             }
             
             mLastTime = now;
         }
-
+        
         /**
-         * Check if the pencil has reached its maximum tilt angle and hit the side of the box.
+         * Check if pencil is at rest, with no chance of moving.
          * 
-         * @param double tiltAngle The pencil's angular displacement to the vertical, in radians
-         * 
-         * @return boolean true if the pencil has hit the side of the box, otherwise false
+         * @return boolean True if pencil cannot be moved, otherwise false
          */
-        private boolean hasReachedMaxTiltAngle(double tiltAngle)
+        private boolean isAtRest()
         {
-        	return (Math.abs(tiltAngle) > maxTiltAngle);
+        	if (
+        		//if the tilt angle is at the max
+        		(Math.abs((Math.abs(tiltAngle) - maxTiltAngle)/maxTiltAngle) < 0.001)
+        		//if the velocity is zero
+        		&& (Math.abs(angularVelocity) < 0.01)
+        		//if the acceleration force is such that it can't change the tilt angle
+        		&& (
+        				(tiltAngle > 0 && theta < maxTiltAngle)
+        				|| (tiltAngle < 0 && theta > (-maxTiltAngle))
+        		)      			
+        	)
+        	{
+        		return true;
+        	}
+        	return false;
         }
 
         /**
