@@ -1,11 +1,11 @@
 package com.pencilsimulator;
 
-import com.pencilmotionsimulator.MotionSimulator;
-
 import android.content.Context;
 import android.content.res.Resources;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Matrix;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Handler;
 import android.util.AttributeSet;
@@ -13,10 +13,17 @@ import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+import com.explode1.Exploder1;
+import com.explode2.Exploder2;
+import com.explode3.Exploder3;
+import com.pencilmotionsimulator.MotionSimulator;
+
 /** Show a pencil balanced on its tip, falling over. */
 
 class PencilView extends SurfaceView implements SurfaceHolder.Callback {
 
+	static int EXPLODE_STYLE = 1;
+	
     class PencilThread extends Thread {
   
     	//gravitational parameter
@@ -89,20 +96,73 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         private long mLastTime = 0;
         
         private BitmapDrawable pencilDrawable = null;
+        
+        private Exploder1 exploder1 = null;
+        
+        private Exploder2 exploder2 = null;
+        
+        private Exploder3 exploder3 = null;
+        
+        private boolean doExplosion = false;
+        private int explosionIteration = 0;
+        private float explosionScale = 1.0f;
+        private int explosionDuration = 15;
+        private int explosionXPosition;
+        private int explosionYPosition;
 
         public PencilThread(SurfaceHolder surfaceHolder, Context context,
                 Handler handler) {
         	
         	mSurfaceHolder = surfaceHolder;
         	
-            initializeBitmap(context);
+            
         }
         
-        private void initializeBitmap(Context context)
+        /**
+         * Initialize the pencil image
+         */
+        private void initializePencilBitmap(Context context)
         {
         	Resources res = context.getResources();
         	pencilDrawable = new BitmapDrawable(res, BitmapFactory.decodeResource(res, R.drawable.pencil));
-        	pencilDrawable.setAntiAlias(true);
+        	pencilDrawable.setAntiAlias(true);    	
+        }
+        
+        /**
+         * Initialize the explosion image
+         */
+        private void initializeExplosionBitmap(Context context)
+        {
+        	if (EXPLODE_STYLE == 1)
+        	{
+        		Bitmap explodableBmp = BitmapFactory.decodeResource(getResources(), R.drawable.explodable);
+        		Matrix matrix = new Matrix();
+        		float scale = (0.03f * mCanvasWidth)/ explodableBmp.getWidth();
+        		matrix.postScale(scale, scale);
+        		Bitmap resizedBitmap = Bitmap.createBitmap(explodableBmp, 0, 0, explodableBmp.getWidth(), explodableBmp.getHeight(), matrix, true);
+        		exploder1 = new Exploder1(resizedBitmap);
+        	} else if (EXPLODE_STYLE == 2)
+        	{
+        		Resources res = context.getResources();
+        		BitmapDrawable[] explodableBmps = new BitmapDrawable[12];
+        		explodableBmps[0] = new BitmapDrawable(res, BitmapFactory.decodeResource(res, R.drawable.boom1));
+        		explodableBmps[1] = new BitmapDrawable(res, BitmapFactory.decodeResource(res, R.drawable.boom2));
+        		explodableBmps[2] = new BitmapDrawable(res, BitmapFactory.decodeResource(res, R.drawable.boom3));
+        		explodableBmps[3] = new BitmapDrawable(res, BitmapFactory.decodeResource(res, R.drawable.boom4));
+        		explodableBmps[4] = new BitmapDrawable(res, BitmapFactory.decodeResource(res, R.drawable.boom5));
+        		explodableBmps[5] = new BitmapDrawable(res, BitmapFactory.decodeResource(res, R.drawable.boom6));
+        		explodableBmps[6] = new BitmapDrawable(res, BitmapFactory.decodeResource(res, R.drawable.boom7));
+        		explodableBmps[7] = new BitmapDrawable(res, BitmapFactory.decodeResource(res, R.drawable.boom8));
+        		explodableBmps[8] = new BitmapDrawable(res, BitmapFactory.decodeResource(res, R.drawable.boom9));
+        		explodableBmps[9] = new BitmapDrawable(res, BitmapFactory.decodeResource(res, R.drawable.boom10));
+        		explodableBmps[10] = new BitmapDrawable(res, BitmapFactory.decodeResource(res, R.drawable.boom11));
+        		exploder2 = new Exploder2(explodableBmps);
+        	}  else if (EXPLODE_STYLE == 3)
+        	{
+        		Resources res = context.getResources();
+        		BitmapDrawable explodableBmp = new BitmapDrawable(res, BitmapFactory.decodeResource(res, R.drawable.boom));
+        		exploder3 = new Exploder3(explodableBmp);
+        	}
         }
 
     	/**
@@ -172,6 +232,10 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
             synchronized (mSurfaceHolder) {
                 mCanvasWidth = width;
                 mCanvasHeight = height;
+                
+                initializePencilBitmap(getContext());
+                
+                initializeExplosionBitmap(getContext());
                 
                 //initialize drawing dimension parameters
                 pencilDisplayLength = 0.7f * mCanvasHeight;
@@ -245,7 +309,36 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
 
         	pencilDrawable.draw(canvas);
 
+        	if (doExplosion)
+            {
+            	drawExplosion(canvas);
+            }
+        	
         	canvas.restore();
+        }
+        
+        /**
+         * Draw the explosion when the pencil hits the side
+         */
+        private void drawExplosion(Canvas canvas)
+        {
+        	if (EXPLODE_STYLE == 1)
+        	{
+        		exploder1.draw(canvas, explosionXPosition, explosionYPosition, explosionIteration * 0.1f * explosionScale);
+        	} else if (EXPLODE_STYLE == 2)
+        	{
+        		exploder2.draw(canvas, explosionXPosition, explosionYPosition, explosionIteration, explosionScale);
+        	} else if (EXPLODE_STYLE == 3)
+        	{
+        		exploder3.draw(canvas, explosionXPosition, explosionYPosition, explosionIteration, explosionScale);
+        	}
+        	
+        	explosionIteration++;
+        	if (explosionIteration > explosionDuration)
+        	{
+        		doExplosion = false;
+        		explosionIteration = 0;
+        	}
         }
 
         /**
@@ -294,12 +387,48 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
             		angularVelocity = 0.0;
             	} else if ((tiltAngle > 0 && angularVelocity > 0) || (tiltAngle < 0 && angularVelocity < 0))
             	{
+            		if (!doExplosion && Math.abs(angularVelocity) > 0.3f)
+            		{
+            			initializeExplosion();
+            		}           		
             		//make pencil bounce off side
             		angularVelocity = -0.5 * angularVelocity;
             	}
             }
             
             mLastTime = now;
+        }
+        
+        /**
+         * Initialize the explosion when the pencil hits the side
+         */
+        private void initializeExplosion()
+        {
+        	doExplosion = true;
+			explosionIteration = 0;
+
+        	if (tiltAngle > 0)
+    		{
+        		explosionXPosition = (int) ( 0.5 * mCanvasWidth + 0.5 * pencilDisplayWidth);
+    		} else
+    		{
+    			explosionXPosition = (int) (0.5 * mCanvasWidth -  0.5 * pencilDisplayWidth);
+    		}
+        	explosionYPosition = (int) (mCanvasHeight - 0.98f * pencilDisplayLength);
+        	if (EXPLODE_STYLE == 1)
+        	{
+        		explosionScale = exploder1.getExplosionScale(angularVelocity);
+        		explosionDuration = exploder1.getExplosionDuration(angularVelocity);
+        		exploder1.prepare(0.5f, 0.6f);
+        	} else if (EXPLODE_STYLE == 2)
+        	{
+        		explosionScale = exploder2.getExplosionScale(angularVelocity);
+        		explosionDuration = exploder2.getExplosionDuration(angularVelocity);
+        	} else if (EXPLODE_STYLE == 3)
+        	{
+        		explosionScale = exploder3.getExplosionScale(angularVelocity);
+        		explosionDuration = exploder3.getExplosionDuration(angularVelocity);
+        	}
         }
         
         /**
