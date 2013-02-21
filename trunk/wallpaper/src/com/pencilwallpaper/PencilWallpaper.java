@@ -27,6 +27,9 @@ import com.pencilmotionsimulator.MotionSimulator;
 public class PencilWallpaper extends WallpaperService {
 	
 	static int EXPLODE_STYLE = 1;
+	
+	//flag showing if at least one frame of the animation has been drawn
+	public boolean drawingInitialized = false;
 
     private final Handler mHandler = new Handler();
 
@@ -191,6 +194,7 @@ public class PencilWallpaper extends WallpaperService {
 
             //get sensor manager
             sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+
         }
 
         @Override
@@ -210,6 +214,7 @@ public class PencilWallpaper extends WallpaperService {
                 Sensor accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
                 sensorManager.registerListener(mSensorListener, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
                 
+                drawingInitialized = false;
                 drawFrame();
             } else {
                 mHandler.removeCallbacks(mDrawPencil);
@@ -238,6 +243,8 @@ public class PencilWallpaper extends WallpaperService {
             pencilDisplayWidth = (drawableWidth/ drawableHeight) * pencilDisplayLength + 1.0f;
 
             maxTiltAngle = calculateMaxTiltAngle();
+            
+            drawingInitialized = false;
             drawFrame();
         }
         
@@ -261,6 +268,7 @@ public class PencilWallpaper extends WallpaperService {
         @Override
         public void onSurfaceCreated(SurfaceHolder holder) {
             super.onSurfaceCreated(holder);
+            drawingInitialized = false;
         }
 
         @Override
@@ -274,15 +282,22 @@ public class PencilWallpaper extends WallpaperService {
          * Draw the scene
          */
         void drawFrame() {
+
             final SurfaceHolder holder = getSurfaceHolder();
 
             Canvas c = null;
             try {
                 c = holder.lockCanvas();
                 if (c != null) {
-                	updatePhysics();
-                    // draw something
-                    doDraw(c);
+                	boolean physicsUpdated = updatePhysics();
+                	if (drawingInitialized && !physicsUpdated)
+                    {
+                    	//if view has been drawn at least once, and the physics was NOT updated in the last cycle, don't redraw it
+                    } else
+                    {
+                    	// draw something
+                    	doDraw(c);
+                    }
                 }
             } finally {
                 if (c != null) holder.unlockCanvasAndPost(c);
@@ -298,14 +313,17 @@ public class PencilWallpaper extends WallpaperService {
 
         /**
          * Calculate the angular displacement and speed of the pencil
+         * 
+         * @return boolean True if the physical parameters of the system were updated and the view needs to be
+         *  re-drawn, otherwise false
          */
-        private void updatePhysics() {
+        private boolean updatePhysics() {
 
         	//initialize mLastTime
         	if (mLastTime == 0)
         	{
         		mLastTime = System.currentTimeMillis() + 100;
-        		return;
+        		return true;
         	}
 
         	long now = System.currentTimeMillis();
@@ -315,13 +333,13 @@ public class PencilWallpaper extends WallpaperService {
         	{
         		mLastTime = now;
         		angularVelocity = 0.0;
-        		return;
+        		return false;
         	}
 
         	// Do nothing if mLastTime is in the future.
             // This allows the game-start to delay the start of the physics
             // by 100ms or whatever.
-            if (mLastTime > now) return;
+            if (mLastTime > now) return true;
             
             double elapsed = (now - mLastTime) / 1000.0;
 
@@ -352,6 +370,7 @@ public class PencilWallpaper extends WallpaperService {
             }
             
             mLastTime = now;
+            return true;
         }
         
         /**
@@ -436,6 +455,8 @@ public class PencilWallpaper extends WallpaperService {
         	drawBackground(canvas);
         	
             drawPencilDrawable(canvas);
+            
+            drawingInitialized = true;
         }
         
         /**
