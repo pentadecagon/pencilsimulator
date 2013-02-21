@@ -31,7 +31,7 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
     	
     	//artificial parameter we use to reduce the size of gravity for testing because pencil falls over too fast
     	//with real gravity
-    	final private double GRAVITY_REDUCTION_FACTOR = 0.01;
+    	final private double GRAVITY_REDUCTION_FACTOR = 0.02;
     	
     	//angle of gravitational force from negative y axis
     	private double theta = 0.0;
