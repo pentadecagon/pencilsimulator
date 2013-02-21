@@ -24,6 +24,9 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
 
 	static int EXPLODE_STYLE = 1;
 	
+	//flag showing if at least one frame of the animation has been drawn
+	public boolean drawingInitialized = false;
+	
     class PencilThread extends Thread {
   
     	//gravitational parameter
@@ -171,13 +174,26 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         @Override
         public void run() {
 
+        	boolean physicsUpdated;
+        	
             while (mRun) {
                 Canvas c = null;
                 try {
                     c = mSurfaceHolder.lockCanvas(null);
                     synchronized (mSurfaceHolder) {
-                        if (mMode == STATE_RUNNING) updatePhysics();
-                        doDraw(c);
+                    	physicsUpdated = false;
+                        if (mMode == STATE_RUNNING)
+                        {
+                        	physicsUpdated = updatePhysics();
+                        }
+
+                        if (drawingInitialized && !physicsUpdated)
+                        {
+                        	//if view has been drawn at least once, and the physics was NOT updated in the last cycle, don't redraw it
+                        } else
+                        {
+                        	doDraw(c);
+                        }
                     }
                 } finally {
                     // do this in a finally so that if an exception is thrown
@@ -279,6 +295,8 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         	drawBackground(canvas);
         	
             drawPencilDrawable(canvas);
+            
+            drawingInitialized = true;
         }
         
         /**
@@ -343,14 +361,17 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
 
         /**
          * Calculate the angular displacement and speed of the pencil
+         * 
+         * @return boolean True if the physical parameters of the system were updated and the view needs to be
+         *  re-drawn, otherwise false
          */
-        private void updatePhysics() {
+        private boolean updatePhysics() {
 
         	//initialize mLastTime
         	if (mLastTime == 0)
         	{
         		mLastTime = System.currentTimeMillis() + 100;
-        		return;
+        		return true;
         	}
 
         	long now = System.currentTimeMillis();
@@ -360,13 +381,13 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         	{
         		mLastTime = now;
         		angularVelocity = 0.0;
-        		return;
+        		return false;
         	}
 
         	// Do nothing if mLastTime is in the future.
             // This allows the game-start to delay the start of the physics
             // by 100ms or whatever.
-            if (mLastTime > now) return;
+            if (mLastTime > now) return true;
             
             double elapsed = (now - mLastTime) / 1000.0;
 
@@ -397,6 +418,7 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
             }
             
             mLastTime = now;
+            return true;
         }
         
         /**
@@ -493,6 +515,8 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
      */
     public void surfaceCreated(SurfaceHolder holder) {
 
+    	drawingInitialized = false;
+    	
     	if (thread != null)
     	{
     		thread.interrupt();
