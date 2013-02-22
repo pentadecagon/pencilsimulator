@@ -15,11 +15,14 @@ import android.hardware.SensorManager;
 import android.os.Handler;
 import android.service.wallpaper.WallpaperService;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 
 import com.explode1.Exploder1;
 import com.explode2.Exploder2;
 import com.explode3.Exploder3;
+import com.pencildisplay.PencilDisplayHelper;
+import com.pencildisplay.ExplosionConfig;
 import com.pencilmotionsimulator.MotionSimulator;
 
 /** Show a pencil balanced on its tip, falling over. */
@@ -76,7 +79,7 @@ public class PencilWallpaper extends WallpaperService {
     	private float pencilDisplayWidth;
 
     	//maximum angle that the pencil is allowed to tilt before it hits the side of the box
-    	private float maxTiltAngle;
+    	private double maxTiltAngle;
 
     	//initial angular displacement
     	final private double INITIAL_TILT_ANGLE = 0.0;
@@ -116,12 +119,13 @@ public class PencilWallpaper extends WallpaperService {
         
         private Exploder3 exploder3 = null;
         
-        private boolean doExplosion = false;
-        private int explosionIteration = 0;
-        private float explosionScale = 1.0f;
-        private int explosionDuration = 15;
-        private int explosionXPosition;
-        private int explosionYPosition;
+        private ExplosionConfig explosionConfig = new ExplosionConfig();
+        
+        //last user touch positions
+        private float mTouchX = -1, mTouchY = -1;
+        
+        //helper for doing calculations related to display
+        PencilDisplayHelper displayHelper = null;
         
         //the runnable that will be used to animate the wallpaper
         private final Runnable mDrawPencil = new Runnable() {
@@ -166,7 +170,7 @@ public class PencilWallpaper extends WallpaperService {
         		float scale = (0.03f * mCanvasWidth)/ explodableBmp.getWidth();
         		matrix.postScale(scale, scale);
         		Bitmap resizedBitmap = Bitmap.createBitmap(explodableBmp, 0, 0, explodableBmp.getWidth(), explodableBmp.getHeight(), matrix, true);
-        		exploder1 = new Exploder1(resizedBitmap);
+        		exploder1 = new Exploder1(resizedBitmap, 0.5f, 0.6f);
         	} else if (EXPLODE_STYLE == 2)
         	{
         		Resources res = context.getResources();
@@ -245,27 +249,13 @@ public class PencilWallpaper extends WallpaperService {
             float drawableHeight = pencilDrawable.getIntrinsicHeight();
             pencilDisplayWidth = (drawableWidth/ drawableHeight) * pencilDisplayLength + 1.0f;
 
-            maxTiltAngle = calculateMaxTiltAngle();
+            //create display helper
+            displayHelper = new PencilDisplayHelper(mCanvasWidth, mCanvasHeight, pencilDisplayWidth, pencilDisplayLength);
+            
+            maxTiltAngle = displayHelper.calculateMaxTiltAngle();
             
             drawingInitialized = false;
             drawFrame();
-        }
-        
-        /**
-         * Calculate max angle that the pencil is allowed to tilt
-         */
-        private float calculateMaxTiltAngle()
-        {
-        	//approximate contact point with the side, as measured from tip end of pencil
-        	double contactPointDistance = Math.sqrt((0.95 * pencilDisplayLength) * (0.95 * pencilDisplayLength) + (0.5 * pencilDisplayWidth) * (0.5 * pencilDisplayWidth));
-        	
-        	//angle from the pencil's point to the contact point when the pencil is touching the side
-        	float angle = (float) Math.asin((0.5 * (double) mCanvasWidth/ contactPointDistance))
-        			//angle from the center of the pencil to the point where the pencil touches the side
-        			- (float) Math.asin((0.5 * (double) pencilDisplayWidth/ contactPointDistance));
-        	
-        	return angle;
-        	
         }
 
         @Override
@@ -313,7 +303,6 @@ public class PencilWallpaper extends WallpaperService {
             }
         }
 
-
         /**
          * Calculate the angular displacement and speed of the pencil
          * 
@@ -331,44 +320,71 @@ public class PencilWallpaper extends WallpaperService {
 
         	long now = System.currentTimeMillis();
         	
+            //check if user is currently touching the pencil
+            boolean underTouchControl = false;
+            if (mTouchX > -1)
+            {
+            	underTouchControl = displayHelper.isTouchInAreaOfPencil(mTouchX, mTouchY, tiltAngle);
+            }
+        	
         	//if pencil is at rest such that it's impossible to move it, don't do anything else
-        	if (isAtRest())
-        	{
-        		mLastTime = now;
-        		angularVelocity = 0.0;
-        		return false;
-        	}
-
+            if (!underTouchControl)
+            {
+	        	if (displayHelper.isAtRest(tiltAngle, maxTiltAngle, angularVelocity, theta))
+	        	{
+	        		mLastTime = now;
+	        		angularVelocity = 0.0;
+	        		return false;
+	        	}
+            }
+            
         	// Do nothing if mLastTime is in the future.
             // This allows the game-start to delay the start of the physics
             // by 100ms or whatever.
-            if (mLastTime > now) return true;
+            if (mLastTime >= now) return true;
             
             double elapsed = (now - mLastTime) / 1000.0;
 
             //do calculations
-            double[] motionArray = motionSimulator.calc(tiltAngle, angularVelocity, GRAVITY_REDUCTION_FACTOR*g, theta, elapsed);
-            tiltAngle = motionArray[0];
-            angularVelocity = motionArray[1];
-
+            if (underTouchControl)
+            {
+            	//if user is touching pencil, calculate the motion directly from the touch position
+            	double oldTiltAngle = tiltAngle;
+            	tiltAngle = displayHelper.calculateTiltAngleFromTouchPosition(mTouchX, mTouchY);
+            	angularVelocity	= (tiltAngle - oldTiltAngle)/elapsed;
+            } else
+            {
+            	//calculate pencil's motion under acceleration as measured from the sensors
+	            double[] motionArray = motionSimulator.calc(tiltAngle, angularVelocity, GRAVITY_REDUCTION_FACTOR*g, theta, elapsed);
+	            tiltAngle = motionArray[0];
+	            angularVelocity = motionArray[1];
+            }
+            
             //if the pencil has reached the maximum tilt angle, don't let it go any further
             if (Math.abs(tiltAngle) > maxTiltAngle)
             {
             	//make sure the pencil is shown as lying on the side
             	tiltAngle = (tiltAngle > 0) ? maxTiltAngle : - maxTiltAngle;
             	
-            	if (Math.abs(angularVelocity) < 0.01)
+            	if (!underTouchControl && (Math.abs(angularVelocity) < 0.01))
             	{
             		//stop pencil if it's moving too slowly
             		angularVelocity = 0.0;
-            	} else if ((tiltAngle > 0 && angularVelocity > 0) || (tiltAngle < 0 && angularVelocity < 0))
+            	}
+
+            	if ((tiltAngle > 0 && angularVelocity > 0) || (tiltAngle < 0 && angularVelocity < 0))
             	{
-            		if (!doExplosion && Math.abs(angularVelocity) > 0.3f)
+            		//if pencil hits the wall at above a certain speed, generate an explosion 
+            		if (!explosionConfig.doExplosion && Math.abs(angularVelocity) > 0.3f)
             		{
-            			initializeExplosion();
+            			initializeExplosion(explosionConfig);
             		}
-            		//make pencil bounce off side
-            		angularVelocity = -0.5 * angularVelocity;
+            		
+            		if (!underTouchControl)
+            		{
+	            		//make pencil bounce off side
+	            		angularVelocity = -0.5 * angularVelocity;
+            		}
             	}
             }
             
@@ -379,57 +395,33 @@ public class PencilWallpaper extends WallpaperService {
         /**
          * Initialize the explosion when the pencil hits the side
          */
-        private void initializeExplosion()
+        private void initializeExplosion(ExplosionConfig config)
         {
-        	doExplosion = true;
-			explosionIteration = 0;
+        	config.doExplosion = true;
+        	config.explosionIteration = 0;
 
         	if (tiltAngle > 0)
     		{
-        		explosionXPosition = (int) ( 0.5 * mCanvasWidth + 0.5 * pencilDisplayWidth);
+        		config.explosionXPosition = (int) ( 0.5 * mCanvasWidth + 0.5 * pencilDisplayWidth);
     		} else
     		{
-    			explosionXPosition = (int) (0.5 * mCanvasWidth -  0.5 * pencilDisplayWidth);
+    			config.explosionXPosition = (int) (0.5 * mCanvasWidth -  0.5 * pencilDisplayWidth);
     		}
-        	explosionYPosition = (int) (mCanvasHeight - 0.98f * pencilDisplayLength);
+        	config.explosionYPosition = (int) (mCanvasHeight - 0.98f * pencilDisplayLength);
         	if (EXPLODE_STYLE == 1)
         	{
-        		explosionScale = exploder1.getExplosionScale(angularVelocity);
-        		explosionDuration = exploder1.getExplosionDuration(angularVelocity);
-        		exploder1.prepare(0.5f, 0.6f);
+        		config.explosionScale = exploder1.getExplosionScale(angularVelocity);
+        		config.explosionDuration = exploder1.getExplosionDuration(angularVelocity);
+        		//exploder1.prepare(0.5f, 0.6f);
         	} else if (EXPLODE_STYLE == 2)
         	{
-        		explosionScale = exploder2.getExplosionScale(angularVelocity);
-        		explosionDuration = exploder2.getExplosionDuration(angularVelocity);
+        		config.explosionScale = exploder2.getExplosionScale(angularVelocity);
+        		config.explosionDuration = exploder2.getExplosionDuration(angularVelocity);
         	} else if (EXPLODE_STYLE == 3)
         	{
-        		explosionScale = exploder3.getExplosionScale(angularVelocity);
-        		explosionDuration = exploder3.getExplosionDuration(angularVelocity);
+        		config.explosionScale = exploder3.getExplosionScale(angularVelocity);
+        		config.explosionDuration = exploder3.getExplosionDuration(angularVelocity);
         	}
-        }
-        
-        /**
-         * Check if pencil is at rest, with no chance of moving.
-         * 
-         * @return boolean True if pencil cannot be moved, otherwise false
-         */
-        private boolean isAtRest()
-        {
-        	if (
-        		//if the tilt angle is at the max
-        		(Math.abs((Math.abs(tiltAngle) - maxTiltAngle)/maxTiltAngle) < 0.001)
-        		//if the velocity is zero
-        		&& (Math.abs(angularVelocity) < 0.01)
-        		//if the acceleration force is such that it can't change the tilt angle
-        		&& (
-        				(tiltAngle > 0 && theta < maxTiltAngle)
-        				|| (tiltAngle < 0 && theta > (-maxTiltAngle))
-        		)      			
-        	)
-        	{
-        		return true;
-        	}
-        	return false;
         }
 
         /**
@@ -490,9 +482,9 @@ public class PencilWallpaper extends WallpaperService {
 
         	pencilDrawable.draw(canvas);
 
-        	if (doExplosion)
+        	if (explosionConfig.doExplosion)
         	{
-        		drawExplosion(canvas);
+        		drawExplosion(canvas, explosionConfig);
         	}
         	
         	canvas.restore();
@@ -501,25 +493,38 @@ public class PencilWallpaper extends WallpaperService {
         /**
          * Draw the explosion when the pencil hits the side
          */
-        private void drawExplosion(Canvas canvas)
+        private void drawExplosion(Canvas canvas, ExplosionConfig config)
         {
         	if (EXPLODE_STYLE == 1)
         	{
-        		exploder1.draw(canvas, explosionXPosition, explosionYPosition, explosionIteration * 0.1f * explosionScale);
+        		exploder1.draw(canvas, config.explosionXPosition, config.explosionYPosition, config.explosionIteration * 0.1f * config.explosionScale);
         	} else if (EXPLODE_STYLE == 2)
         	{
-        		exploder2.draw(canvas, explosionXPosition, explosionYPosition, explosionIteration, explosionScale);
+        		exploder2.draw(canvas, config.explosionXPosition, config.explosionYPosition, config.explosionIteration, config.explosionScale);
         	} else if (EXPLODE_STYLE == 3)
         	{
-        		exploder3.draw(canvas, explosionXPosition, explosionYPosition, explosionIteration, explosionScale);
+        		exploder3.draw(canvas, config.explosionXPosition, config.explosionYPosition, config.explosionIteration, config.explosionScale);
         	}
         	
-        	explosionIteration++;
-        	if (explosionIteration > explosionDuration)
+        	config.explosionIteration++;
+        	if (config.explosionIteration > config.explosionDuration)
         	{
-        		doExplosion = false;
-        		explosionIteration = 0;
+        		config.doExplosion = false;
+        		config.explosionIteration = 0;
         	}
+        }
+        
+        @Override
+        public void onTouchEvent(MotionEvent event) {
+        	
+        	if (event.getAction() == MotionEvent.ACTION_MOVE) {
+                mTouchX = event.getX();
+                mTouchY = event.getY();
+            } else {
+            	mTouchX = -1;
+            	mTouchY = -1;
+            }
+        	super.onTouchEvent(event);
         }
         
         /**
