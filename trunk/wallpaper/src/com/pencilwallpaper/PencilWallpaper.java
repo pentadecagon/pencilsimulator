@@ -50,6 +50,9 @@ public class PencilWallpaper extends WallpaperService {
 
     class PencilEngine extends Engine {
 
+    	//time interval between drawing of animation frames in miliseconds
+    	final private static int FRAME_INTERVAL = 10;
+    	
     	//gravitational parameter
     	private double g = 9.81;
     	
@@ -306,7 +309,7 @@ public class PencilWallpaper extends WallpaperService {
             // Reschedule the next redraw
             mHandler.removeCallbacks(mDrawPencil);
             if (mVisible) {
-                mHandler.postDelayed(mDrawPencil, 1000 / 25);
+                mHandler.postDelayed(mDrawPencil, FRAME_INTERVAL);
             }
         }
 
