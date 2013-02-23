@@ -119,7 +119,11 @@ public class PencilWallpaper extends WallpaperService {
         
         private Exploder3 exploder3 = null;
         
-        private ExplosionConfig explosionConfig = new ExplosionConfig();
+        //config for the explosion when the pencil hits the right-hand wall
+        private ExplosionConfig explosionConfigRhs = new ExplosionConfig();
+        
+        //config for the explosion when the pencil hits the left-hand wall
+        private ExplosionConfig explosionConfigLhs = new ExplosionConfig();
         
         //last user touch positions
         private float mTouchX = -1, mTouchY = -1;
@@ -374,10 +378,18 @@ public class PencilWallpaper extends WallpaperService {
 
             	if ((tiltAngle > 0 && angularVelocity > 0) || (tiltAngle < 0 && angularVelocity < 0))
             	{
-            		//if pencil hits the wall at above a certain speed, generate an explosion 
-            		if (!explosionConfig.doExplosion && Math.abs(angularVelocity) > 0.3f)
+            		//if pencil hits the wall at above a certain speed, generate an explosion
+            		if (Math.abs(angularVelocity) > 0.3f)
             		{
-            			initializeExplosion(explosionConfig);
+	            		if (tiltAngle > 0 && !explosionConfigRhs.doExplosion)
+	            		{
+	            			//initialize explosion on right-hand wall
+	            			initializeExplosion(explosionConfigRhs, 1);
+	            		} else if (tiltAngle < 0 && !explosionConfigLhs.doExplosion)
+	            		{
+	            			//initialize explosion on left-hand wall
+	            			initializeExplosion(explosionConfigLhs, -1);
+	            		}
             		}
             		
             		if (!underTouchControl)
@@ -391,22 +403,16 @@ public class PencilWallpaper extends WallpaperService {
             mLastTime = now;
             return true;
         }
-        
+
         /**
          * Initialize the explosion when the pencil hits the side
          */
-        private void initializeExplosion(ExplosionConfig config)
+        private void initializeExplosion(ExplosionConfig config, int direction)
         {
         	config.doExplosion = true;
         	config.explosionIteration = 0;
 
-        	if (tiltAngle > 0)
-    		{
-        		config.explosionXPosition = (int) ( 0.5 * mCanvasWidth + 0.5 * pencilDisplayWidth);
-    		} else
-    		{
-    			config.explosionXPosition = (int) (0.5 * mCanvasWidth -  0.5 * pencilDisplayWidth);
-    		}
+        	config.explosionXPosition = ((direction > 0) ? ((int) ( 0.5 * mCanvasWidth + 0.5 * pencilDisplayWidth)) : ((int) (0.5 * mCanvasWidth -  0.5 * pencilDisplayWidth)));
         	config.explosionYPosition = (int) (mCanvasHeight - 0.98f * pencilDisplayLength);
         	if (EXPLODE_STYLE == 1)
         	{
@@ -482,10 +488,16 @@ public class PencilWallpaper extends WallpaperService {
 
         	pencilDrawable.draw(canvas);
 
-        	if (explosionConfig.doExplosion)
-        	{
-        		drawExplosion(canvas, explosionConfig);
-        	}
+        	//explosion on right-hand wall
+        	if (explosionConfigRhs.doExplosion)
+            {
+            	drawExplosion(canvas, explosionConfigRhs);
+            }
+        	//explosion on left-hand wall
+        	if (explosionConfigLhs.doExplosion)
+            {
+            	drawExplosion(canvas, explosionConfigLhs);
+            }
         	
         	canvas.restore();
         }
