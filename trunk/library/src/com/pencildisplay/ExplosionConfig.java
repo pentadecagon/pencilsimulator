@@ -11,4 +11,10 @@ public class ExplosionConfig {
 	 public int explosionDuration = 15;
 	 public int explosionXPosition;
 	 public int explosionYPosition;
+	 public int direction = 1;
+	 
+	 public ExplosionConfig(int direction)
+	 {
+		 this.direction = direction;
+	 }
 }

@@ -37,7 +37,7 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
     	
     	//artificial parameter we use to reduce the size of gravity for testing because pencil falls over too fast
     	//with real gravity
-    	final private double GRAVITY_REDUCTION_FACTOR = 0.02;
+    	final private double GRAVITY_REDUCTION_FACTOR = 0.05;
     	
     	//angle of gravitational force from negative y axis
     	private double theta = 0.0;
@@ -110,10 +110,10 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         private Exploder3 exploder3 = null;
 
         //config for the explosion when the pencil hits the right-hand wall
-        private ExplosionConfig explosionConfigRhs = new ExplosionConfig();
+        private ExplosionConfig explosionConfigRhs = new ExplosionConfig(1);
         
         //config for the explosion when the pencil hits the left-hand wall
-        private ExplosionConfig explosionConfigLhs = new ExplosionConfig();
+        private ExplosionConfig explosionConfigLhs = new ExplosionConfig(-1);
 
         //last user touch positions
         private float mTouchX = -1, mTouchY = -1;
@@ -151,7 +151,7 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         		float scale = (0.03f * mCanvasWidth)/ explodableBmp.getWidth();
         		matrix.postScale(scale, scale);
         		Bitmap resizedBitmap = Bitmap.createBitmap(explodableBmp, 0, 0, explodableBmp.getWidth(), explodableBmp.getHeight(), matrix, true);
-        		exploder1 = new Exploder1(resizedBitmap, 0.5f, 0.6f);
+        		exploder1 = new Exploder1(resizedBitmap, 0.9f, 0.6f);
         	} else if (EXPLODE_STYLE == 2)
         	{
         		Resources res = context.getResources();
@@ -320,7 +320,9 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         	pencilDrawable.setBounds(xLeft, yTop, xRight, yBottom);
 
         	pencilDrawable.draw(canvas);
-
+	
+        	canvas.restore();
+        	
         	//explosion on right-hand wall
         	if (explosionConfigRhs.doExplosion)
             {
@@ -331,8 +333,6 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
             {
             	drawExplosion(canvas, explosionConfigLhs);
             }
-        	
-        	canvas.restore();
         }
         
         /**
@@ -436,11 +436,11 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
 	            		if (tiltAngle > 0 && !explosionConfigRhs.doExplosion)
 	            		{
 	            			//initialize explosion on right-hand wall
-	            			initializeExplosion(explosionConfigRhs, 1);
+	            			initializeExplosion(explosionConfigRhs);
 	            		} else if (tiltAngle < 0 && !explosionConfigLhs.doExplosion)
 	            		{
 	            			//initialize explosion on left-hand wall
-	            			initializeExplosion(explosionConfigLhs, -1);
+	            			initializeExplosion(explosionConfigLhs);
 	            		}
             		}
             		
@@ -459,17 +459,22 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         /**
          * Initialize the explosion when the pencil hits the side
          */
-        private void initializeExplosion(ExplosionConfig config, int direction)
+        private void initializeExplosion(ExplosionConfig config)
         {
         	config.doExplosion = true;
         	config.explosionIteration = 0;
 
-        	config.explosionXPosition = ((direction > 0) ? ((int) ( 0.5 * mCanvasWidth + 0.5 * pencilDisplayWidth)) : ((int) (0.5 * mCanvasWidth -  0.5 * pencilDisplayWidth)));
-        	config.explosionYPosition = (int) (mCanvasHeight - 0.98f * pencilDisplayLength);
+        	//config.explosionXPosition = ((direction > 0) ? ((int) ( 0.5 * mCanvasWidth + 0.5 * pencilDisplayWidth)) : ((int) (0.5 * mCanvasWidth -  0.5 * pencilDisplayWidth)));
+        	//config.explosionYPosition = (int) (mCanvasHeight - 0.98f * pencilDisplayLength);
+        	
+        	config.explosionXPosition = ((config.direction > 0) ? ((int) ( 0.99 * mCanvasWidth)) : ((int) (0.01 * mCanvasWidth)));
+        	config.explosionYPosition = (int) (mCanvasHeight - 1.02 * pencilDisplayLength * (float) Math.cos(maxTiltAngle));
         	if (EXPLODE_STYLE == 1)
         	{
         		config.explosionScale = exploder1.getExplosionScale(angularVelocity);
         		config.explosionDuration = exploder1.getExplosionDuration(angularVelocity);
+        		float breakpointX = ((config.direction == 1) ? 0.9f : 0.1f);
+        		exploder1.prepare(breakpointX, 0.6f);
         		//exploder1.prepare(0.5f, 0.6f);
         	} else if (EXPLODE_STYLE == 2)
         	{
