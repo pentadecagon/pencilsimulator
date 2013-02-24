@@ -155,7 +155,7 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         	} else if (EXPLODE_STYLE == 2)
         	{
         		Resources res = context.getResources();
-        		BitmapDrawable[] explodableBmps = new BitmapDrawable[12];
+        		BitmapDrawable[] explodableBmps = new BitmapDrawable[11];
         		explodableBmps[0] = new BitmapDrawable(res, BitmapFactory.decodeResource(res, R.drawable.boom1));
         		explodableBmps[1] = new BitmapDrawable(res, BitmapFactory.decodeResource(res, R.drawable.boom2));
         		explodableBmps[2] = new BitmapDrawable(res, BitmapFactory.decodeResource(res, R.drawable.boom3));
@@ -340,22 +340,25 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
          */
         private void drawExplosion(Canvas canvas, ExplosionConfig config)
         {
+        	long now = System.currentTimeMillis();
+        	long duration = now - config.explosionStartTime;
         	if (EXPLODE_STYLE == 1)
         	{
-        		exploder1.draw(canvas, config.explosionXPosition, config.explosionYPosition, config.explosionIteration * 0.1f * config.explosionScale);
+        		float interpolation = duration/100f;
+        		exploder1.draw(canvas, config.explosionXPosition, config.explosionYPosition, interpolation * config.explosionScale);
         	} else if (EXPLODE_STYLE == 2)
         	{
-        		exploder2.draw(canvas, config.explosionXPosition, config.explosionYPosition, config.explosionIteration, config.explosionScale);
+        		int iteration = Math.round(duration/10f);
+        		exploder2.draw(canvas, config.explosionXPosition, config.explosionYPosition, iteration, config.explosionScale);
         	} else if (EXPLODE_STYLE == 3)
         	{
-        		exploder3.draw(canvas, config.explosionXPosition, config.explosionYPosition, config.explosionIteration, config.explosionScale);
+        		float interpolation = duration/100f;
+        		exploder3.draw(canvas, config.explosionXPosition, config.explosionYPosition, interpolation, config.explosionScale);
         	}
-        	
-        	config.explosionIteration++;
-        	if (config.explosionIteration > config.explosionDuration)
+
+        	if (duration > config.explosionDuration)
         	{
         		config.doExplosion = false;
-        		config.explosionIteration = 0;
         	}
         }
 
@@ -462,7 +465,8 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         private void initializeExplosion(ExplosionConfig config)
         {
         	config.doExplosion = true;
-        	config.explosionIteration = 0;
+
+        	config.explosionStartTime = System.currentTimeMillis();
 
         	//config.explosionXPosition = ((direction > 0) ? ((int) ( 0.5 * mCanvasWidth + 0.5 * pencilDisplayWidth)) : ((int) (0.5 * mCanvasWidth -  0.5 * pencilDisplayWidth)));
         	//config.explosionYPosition = (int) (mCanvasHeight - 0.98f * pencilDisplayLength);
