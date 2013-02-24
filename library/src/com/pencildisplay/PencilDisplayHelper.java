@@ -98,16 +98,17 @@ public class PencilDisplayHelper {
      * 
      * @param float mTouchX The x-position of the touch on the screen
      * @param float mTouchY The y-position of the touch on the screen
+     * @param double angularOffset Desired radial angular offset between the touch position on the screen and the tilt angle of the pencil
      * 
      * @return double tiltAngle The tilt angle to the horizontal corresponding to the touched position on the screen
      */
-    public double calculateTiltAngleFromTouchPosition(float mTouchX, float mTouchY)
+    public double calculateTiltAngleFromTouchPosition(float mTouchX, float mTouchY, double angularOffset)
     {
     	if (mTouchX == 0) { return 0; }
     	
     	double x = (double) (mTouchX - 0.5f * mCanvasWidth);
     	double y = (double) (mCanvasHeight - mTouchY);
-    	double tiltAngle = Math.atan(x/y);
+    	double tiltAngle = Math.atan(x/y) - angularOffset;
     	
     	return tiltAngle;
     }

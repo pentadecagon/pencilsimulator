@@ -120,6 +120,12 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         
         //helper for doing calculations related to display
         PencilDisplayHelper displayHelper = null;
+        
+        //whether or not the pencil is under touch control
+        private boolean underTouchControl = false;
+        
+        //angular offset between the position the user is touching the pencil and the pencil center
+        private double touchControlOffset = 0.0f;
 
         public PencilThread(SurfaceHolder surfaceHolder, Context context,
                 Handler handler) {
@@ -380,10 +386,18 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         	long now = System.currentTimeMillis();
         	
             //check if user is currently touching the pencil
-            boolean underTouchControl = false;
+        	boolean previousUnderTouchControl = underTouchControl; //previous status of underTouchControl
+            underTouchControl = false;
             if (mTouchX > -1)
             {
             	underTouchControl = displayHelper.isTouchInAreaOfPencil(mTouchX, mTouchY, tiltAngle);
+            	//if this is the first time the user has touched the pencil, calculate the angular offset
+            	//so that the user gets a smooth experience when they move the pencil manually
+            	if (underTouchControl && !previousUnderTouchControl)
+            	{
+            		//angular offset between the position the user is touching the pencil and the pencil center
+            		touchControlOffset = displayHelper.calculateTiltAngleFromTouchPosition(mTouchX, mTouchY, 0.0) - tiltAngle;
+            	}
             }
         	
         	//if pencil is at rest such that it's impossible to move it, don't do anything else
@@ -409,7 +423,7 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
             {
             	//if user is touching pencil, calculate the motion directly from the touch position
             	double oldTiltAngle = tiltAngle;
-            	tiltAngle = displayHelper.calculateTiltAngleFromTouchPosition(mTouchX, mTouchY);
+            	tiltAngle = displayHelper.calculateTiltAngleFromTouchPosition(mTouchX, mTouchY, touchControlOffset);
             	angularVelocity	= (tiltAngle - oldTiltAngle)/elapsed;
             } else
             {
