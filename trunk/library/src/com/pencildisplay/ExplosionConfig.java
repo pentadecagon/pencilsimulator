@@ -5,13 +5,20 @@ package com.pencildisplay;
  */
 
 public class ExplosionConfig {
+	 //whether explosion is in progress at this time
 	 public boolean doExplosion = false;
-	 public int explosionIteration = 0;
+	 //relative size of explosion
 	 public float explosionScale = 1.0f;
-	 public int explosionDuration = 15;
+	 //duration in miliseconds
+	 public long explosionDuration = 100;
+	 //x-position from which explosion should start
 	 public int explosionXPosition;
+	 //y-position from which explosion should start
 	 public int explosionYPosition;
+	 //explosion direction: 1 = right-hand wall, -1 = left-hand wall
 	 public int direction = 1;
+	 //start time of explosion
+	 public long explosionStartTime;
 	 
 	 public ExplosionConfig(int direction)
 	 {

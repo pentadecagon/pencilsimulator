@@ -60,11 +60,12 @@ public class Exploder1 {
      * Calculate the duration of the explosion based on the angular speed (if the pencil hits harder, the explosion is bigger).
      * 
      * @param double angularVelocity The angular speed
-     * @return int explosionDuration Duration of the explosion in iterations of the animation 
+     * @return long explosionDuration Duration of the explosion in miliseconds
      */
-    public int getExplosionDuration(double angularVelocity)
+    public long getExplosionDuration(double angularVelocity)
     {
-    	return ((int) (17 * (float) Math.abs(angularVelocity)) + 1);
+    	int duration = ((int) (17 * (float) Math.abs(angularVelocity)) + 1) * 10;
+    	return duration;
     }
 
     /**

@@ -33,11 +33,11 @@ public class Exploder3 {
      * Calculate the duration of the explosion based on the angular speed (if the pencil hits harder, the explosion is bigger).
      * 
      * @param double angularVelocity The angular speed
-     * @return int explosionDuration Duration of the explosion in iterations of the animation 
+     * @return long explosionDuration Duration of the explosion in miliseconds
      */
-    public int getExplosionDuration(double angularVelocity)
+    public long getExplosionDuration(double angularVelocity)
     {
-    	return 10;
+    	return 100L;
     }
 	
     /**
@@ -46,11 +46,11 @@ public class Exploder3 {
      * @param Canvas canvas The android canvas
      * @param int absoluteDisplacementX The x-position of the center of the image on the canvas
      * @param int absoluteDisplacementY The y-position of the center of the image on the canvas
-     * @param float interpolation Progress of the animation. Between 0 and 10.
+     * @param float interpolation Progress of the animation. Between 0 and 1.
      * @param float explosionScale Parameter giving the relative size of the explosion
      */
-	public void draw(Canvas canvas, int absoluteDisplacementX, int absoluteDisplacementY, int interpolation, float explosionScale) {
-		int explosionSize = 3 + (int) (0.25f * explosionScale * interpolation * interpolation);
+	public void draw(Canvas canvas, int absoluteDisplacementX, int absoluteDisplacementY, float interpolation, float explosionScale) {
+		int explosionSize = 3 + (int) (25f * explosionScale * interpolation * interpolation);
 		
 		int xLeftExp = absoluteDisplacementX - explosionSize;
     	int yTopExp = absoluteDisplacementY - explosionSize;
