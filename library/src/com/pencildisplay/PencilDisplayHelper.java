@@ -1,5 +1,7 @@
 package com.pencildisplay;
 
+import java.util.concurrent.TimeUnit;
+
 /** Contains methods to help with the display of the pencil simulator. */
 
 public class PencilDisplayHelper {
@@ -140,6 +142,26 @@ public class PencilDisplayHelper {
     		return true;
     	}
     	return false;
+    }
+    
+    public static String formatInterval(final long l)
+    {
+        final long hr = TimeUnit.MILLISECONDS.toHours(l);
+        final long min = TimeUnit.MILLISECONDS.toMinutes(l - TimeUnit.HOURS.toMillis(hr));
+        final long sec = TimeUnit.MILLISECONDS.toSeconds(l - TimeUnit.HOURS.toMillis(hr) - TimeUnit.MINUTES.toMillis(min));
+        if (hr > 0)
+        {
+        	return String.format("%02d:%02d:%02d", hr, min, sec);
+        } else if (min > 0)
+        {
+        	return String.format("%02d:%02d", min, sec);
+        } else
+        {
+        	return sec + "";
+        }
+
+        //final long ms = TimeUnit.MILLISECONDS.toMillis(l - TimeUnit.HOURS.toMillis(hr) - TimeUnit.MINUTES.toMillis(min) - TimeUnit.SECONDS.toMillis(sec));
+        //return String.format("%02d:%02d:%02d.%03d", hr, min, sec, ms);
     }
 	
 }

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+    
+    <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	    android:layout_width="wrap_content"
+	    android:layout_height="wrap_content"
+	    android:layout_centerInParent="true">
+
+		<TextView
+		    android:id="@+id/highScoreTitle"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:textColor="#ffffff"
+	        android:textSize="20sp"
+	        android:layout_centerHorizontal="true"
+	        android:paddingBottom="15dp"
+	        android:text="Please wait..."/>
+		
+		<TextView
+		    android:id="@+id/highScoreNumber"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:textColor="#ffffff"
+	        android:textSize="28sp"
+	        android:layout_centerHorizontal="true"
+	        android:layout_below="@+id/highScoreTitle"
+	        android:text="xxx"
+	        android:visibility="gone"/>
+		
+	      <LinearLayout
+	        android:id="@+id/highScoreProgress"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:layout_below="@+id/highScoreNumber"
+	        android:gravity="center_vertical|center_horizontal"
+	        android:layout_centerHorizontal="true">        
+	        <ProgressBar
+				style="?android:attr/progressBarStyle"
+	        	android:layout_width="wrap_content"
+	            android:layout_height="wrap_content">
+	        </ProgressBar>
+
+	  	</LinearLayout>
+	</RelativeLayout>
+
+</RelativeLayout>

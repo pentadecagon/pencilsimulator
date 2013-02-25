@@ -1,6 +1,7 @@
 package com.pencilsimulator;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -8,6 +9,7 @@ import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
+import android.view.MenuItem;
 
 /** Show a pencil balanced on its tip, falling over. */
 
@@ -58,6 +60,32 @@ public class PencilActivity extends Activity implements SensorEventListener {
 		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.activity_pencil, menu);
 		return true;
+	}
+	
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item)
+	{
+		if (item.getItemId() == R.id.menu_gravity)
+		{
+			Activity ac = PencilActivity.this;
+			Intent i = new Intent(ac, SettingsActivity.class);
+			//make sure there's only one of each type of activity running
+			i.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+			ac.startActivity(i);
+			
+			//startActivity(new Intent(PencilActivity.this, SettingsActivity.class));
+			
+			return true;
+		} else if (item.getItemId() == R.id.menu_high_score)
+		{
+			Activity ac = PencilActivity.this;
+			Intent i = new Intent(ac, HighScoreActivity.class);
+			//make sure there's only one of each type of activity running
+			i.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+			ac.startActivity(i);
+		}
+		
+		return super.onOptionsItemSelected(item);
 	}
 	
 	@Override

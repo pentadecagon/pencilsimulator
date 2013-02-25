@@ -61,13 +61,13 @@ public class PencilWallpaper extends WallpaperService {
     	
     	//artificial parameter we use to reduce the size of gravity for testing because pencil falls over too fast
     	//with real gravity
-    	final private double GRAVITY_REDUCTION_FACTOR = 0.05;
+    	final private double GRAVITY_REDUCTION_FACTOR = 0.02;
     	
     	//angle of gravitational force from negative y axis
     	private double theta = 0.0;
 
     	//distance from pivot to center of mass of pencil as used in physical calculations
-    	private double pencilPhysicalLength = 0.1;
+    	private double pencilPhysicalLength = 0.05;
     	
     	//motion simulator used to animate pencil
     	private MotionSimulator motionSimulator = new MotionSimulator(pencilPhysicalLength);

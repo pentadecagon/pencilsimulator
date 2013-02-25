@@ -1,11 +1,17 @@
 package com.pencilsimulator;
 
+import java.util.HashMap;
+
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Matrix;
+import android.graphics.Paint;
+import android.graphics.Paint.Align;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Handler;
 import android.util.AttributeSet;
@@ -17,8 +23,8 @@ import android.view.SurfaceView;
 import com.explode1.Exploder1;
 import com.explode2.Exploder2;
 import com.explode3.Exploder3;
-import com.pencildisplay.PencilDisplayHelper;
 import com.pencildisplay.ExplosionConfig;
+import com.pencildisplay.PencilDisplayHelper;
 import com.pencilmotionsimulator.MotionSimulator;
 
 /** Show a pencil balanced on its tip, falling over. */
@@ -30,6 +36,8 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
 	//flag showing if at least one frame of the animation has been drawn
 	public boolean drawingInitialized = false;
 	
+	public static HashMap<String, Long> highScores = new HashMap<String, Long>();
+	
     class PencilThread extends Thread {
   
     	//gravitational parameter
@@ -37,13 +45,13 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
     	
     	//artificial parameter we use to reduce the size of gravity for testing because pencil falls over too fast
     	//with real gravity
-    	final private double GRAVITY_REDUCTION_FACTOR = 0.05;
+    	//final private double GRAVITY_REDUCTION_FACTOR = 0.05;
     	
     	//angle of gravitational force from negative y axis
     	private double theta = 0.0;
 
     	//distance from pivot to center of mass of pencil as used in physical calculations
-    	private double pencilPhysicalLength = 0.1;
+    	private double pencilPhysicalLength = 0.05;
     	
     	//motion simulator used to animate pencil
     	private MotionSimulator motionSimulator = new MotionSimulator(pencilPhysicalLength);
@@ -126,13 +134,24 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         
         //angular offset between the position the user is touching the pencil and the pencil center
         private double touchControlOffset = 0.0f;
+        
+        //the time when the pencil last hit the wall, so we can record how long the pencil has been upright
+        public long balanceStartTime = -1;
+        
+        //paint object for drawing
+        private Paint paint;
+        
+        //get the screen's density scale
+        final float scale = getResources().getDisplayMetrics().density;
 
         public PencilThread(SurfaceHolder surfaceHolder, Context context,
                 Handler handler) {
         	
         	mSurfaceHolder = surfaceHolder;
-        	
-            
+        	paint = new Paint();
+        	paint.setColor(Color.GRAY);
+        	paint.setTextAlign(Align.RIGHT);
+        	paint.setTextSize(10.0f * scale + 0.5f);
         }
         
         /**
@@ -296,6 +315,8 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         	
             drawPencilDrawable(canvas);
             
+            updateBalanceTimerDisplay(canvas);
+            
             drawingInitialized = true;
         }
         
@@ -341,6 +362,18 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
             }
         }
         
+        private void updateBalanceTimerDisplay(Canvas canvas)
+        {
+        	if (balanceStartTime > 0)
+        	{
+        		String time = PencilDisplayHelper.formatInterval(System.currentTimeMillis() - balanceStartTime);
+        		canvas.drawText(time, mCanvasWidth, 0.98f * mCanvasHeight, paint);
+        	} else
+        	{
+        		canvas.drawText("0", mCanvasWidth, 0.98f * mCanvasHeight, paint);
+        	}
+        }
+        
         /**
          * Draw the explosion when the pencil hits the side
          */
@@ -384,6 +417,8 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         	}
 
         	long now = System.currentTimeMillis();
+
+        	boolean balanceTimerShouldBeActive = true;
         	
             //check if user is currently touching the pencil
         	boolean previousUnderTouchControl = underTouchControl; //previous status of underTouchControl
@@ -397,6 +432,12 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
             	{
             		//angular offset between the position the user is touching the pencil and the pencil center
             		touchControlOffset = displayHelper.calculateTiltAngleFromTouchPosition(mTouchX, mTouchY, 0.0) - tiltAngle;
+            		//set the balanceStartTime to -1 to show that we are no longer timing how long the pencil is in balance
+            		balanceTimerShouldBeActive = false;
+            	} else if (!underTouchControl && previousUnderTouchControl)
+            	{
+            		//if the user has just released the pencil, start the balance timer again
+            		balanceTimerShouldBeActive = true;
             	}
             }
         	
@@ -407,6 +448,7 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
 	        	{
 	        		mLastTime = now;
 	        		angularVelocity = 0.0;
+	        		balanceStartTime = -1;
 	        		return false;
 	        	}
             }
@@ -428,7 +470,7 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
             } else
             {
             	//calculate pencil's motion under acceleration as measured from the sensors
-	            double[] motionArray = motionSimulator.calc(tiltAngle, angularVelocity, GRAVITY_REDUCTION_FACTOR*g, theta, elapsed);
+	            double[] motionArray = motionSimulator.calc(tiltAngle, angularVelocity, SettingsActivity.gravityFactor*g, theta, elapsed);
 	            tiltAngle = motionArray[0];
 	            angularVelocity = motionArray[1];
             }
@@ -469,8 +511,97 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
             	}
             }
             
+            //if pencil is *visibly* in contact with the wall, stop the timer
+            //(use slightly more generous critieria than for motion equations to prevent rapid stop/ starting of the timer)
+            if (Math.abs(tiltAngle) >= 0.995*maxTiltAngle)
+            {
+            	//reset the timer that records how long since the pencil hit the wall
+            	balanceTimerShouldBeActive = false;
+            }
+            
+            //update balance timer
+            if (balanceTimerShouldBeActive && (balanceStartTime < 0))
+            {
+            	//Log.d("pencil", "going to start balance timer (balanceStartTime="+balanceStartTime+", tiltAngle="+tiltAngle+", maxTiltAngle="+maxTiltAngle);
+            	startBalanceTimer();
+            } else if (!balanceTimerShouldBeActive && (balanceStartTime > 0))
+            {
+            	//Log.d("pencil", "going to stop balance timer (balanceStartTime="+balanceStartTime);
+            	stopBalanceTimer(false);
+            } else
+            {
+            	//do nothing
+            }
+            
             mLastTime = now;
             return true;
+        }
+        
+        public void startBalanceTimer()
+        {
+        	//Log.d("pencil", "startBalanceTimer called");
+        	balanceStartTime = System.currentTimeMillis();
+        }
+        
+        public void stopBalanceTimer(boolean updateSharedPreferences)
+        {
+        	//Log.d("pencil", "stopBalanceTimer called with balanceStartTime="+balanceStartTime);
+        	if (balanceStartTime > 0)
+        	{
+        		//Log.d("pencil", "stopBalanceTimer: going to check high score");
+        		//get session duration in seconds
+        		long sessionDuration = (long) ((System.currentTimeMillis() - balanceStartTime)/1000L);
+        		//update the high score in local memory
+        		updateHighScore(sessionDuration);
+        		if (updateSharedPreferences)
+        		{
+        			//if the update shared preferences flag is set, update the shared preferences in the device storage
+        			//so that the high scores will be remembered next time we start
+        			updateHighScoreSharedPreferences();
+        		}
+        	}
+        	balanceStartTime = -1;
+        }
+        
+        public void updateHighScore(long sessionDuration)
+    	{
+    		//Log.d("pencil", "called updateHighScore");
+        	String key = "highscore_grav_"+SettingsActivity.gravityFactor;
+        	Long highScore = PencilView.highScores.get(key);
+        	if (highScore == null || (sessionDuration > highScore))
+        	{
+        		//Log.d("pencil", "checkAndUpdateHighScore: going to update high score to "+sessionDuration);
+        		PencilView.highScores.put(key, sessionDuration);
+        	}
+    	}
+        
+        public void updateHighScoreSharedPreferences()
+        {
+        	Log.d("pencil", "called updateHighScoreSharedPreferences");
+        	PencilActivity ac = (PencilActivity) PencilView.this.getContext();
+        	SharedPreferences settings = ac.getSharedPreferences("PencilHighScores", PencilActivity.MODE_PRIVATE);
+        	for (String key : PencilView.highScores.keySet())
+        	{
+            	if (PencilView.highScores.get(key) != null)
+            	{
+            		long oldHighScore = settings.getLong(key, 0L);
+            		long newHighScore = PencilView.highScores.get(key);
+            		if (newHighScore > oldHighScore)
+            		{
+            			Log.d("pencil", "updateHighScoreSharedPreferences: going to update value for "+key);
+            			Log.d("pencil", "updateHighScoreSharedPreferences: old value: "+oldHighScore+", newHighScore="+newHighScore);
+            			SharedPreferences.Editor editor = settings.edit();
+                        editor.putLong(key, newHighScore);
+                        editor.commit();
+            		} else
+            		{
+            			Log.d("pencil", "updateHighScoreSharedPreferences: not going to update value for "+key+" because old score is higher than new score");
+            			Log.d("pencil", "updateHighScoreSharedPreferences: old value: "+oldHighScore+", newHighScore="+newHighScore);
+            		}
+            	}
+        	}
+        	
+        	
         }
 
         /**
@@ -518,6 +649,19 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         }
     }
     
+    public void setHighScoresFromSharedPreferences()
+    {
+    	Log.d("pencil", "called setHighScoresFromSharedPreferences");
+    	PencilActivity ac = (PencilActivity) PencilView.this.getContext();
+    	SharedPreferences settings = ac.getSharedPreferences("PencilHighScores", PencilActivity.MODE_PRIVATE);
+    	PencilView.highScores = (HashMap<String, Long>) settings.getAll();
+
+    	for (String key : PencilView.highScores.keySet())
+    	{
+    		Log.d("pencil", "setHighScoresFromSharedPreferences: set local value "+key+", "+PencilView.highScores.get(key));
+    	}
+    }
+    
     /** The thread that actually draws the animation */
     public PencilThread thread = null;
 
@@ -545,6 +689,9 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
 
     	drawingInitialized = false;
     	
+    	//set high scores from shared preferences if not yet done
+    	setHighScoresFromSharedPreferences();
+    	
     	if (thread != null)
     	{
     		thread.interrupt();
@@ -554,11 +701,12 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
     	// create thread
         thread = new PencilThread(holder, getContext(), new Handler() {
         });
+        thread.balanceStartTime = -1;
         thread.setState(PencilThread.STATE_RUNNING);
 
     	thread.setRunning(true);
     	thread.start();
-
+    	
     }
 
     /*
@@ -568,8 +716,16 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
      */
     public void surfaceDestroyed(SurfaceHolder holder) {
 
+    	Log.d("pencil", "called surfaceDestroyed");
     	if (thread != null)
     	{
+        	if (thread.balanceStartTime > 0)
+        	{
+        		long sessionDuration = (long) ((System.currentTimeMillis() - thread.balanceStartTime)/1000L);
+        		Log.d("pencil", "going to update high score to "+sessionDuration);
+        		thread.stopBalanceTimer(true);
+        		thread.balanceStartTime = -1;
+        	}
     		thread.setRunning(false);
     		thread.interrupt();
     		thread = null;
