@@ -1,5 +1,7 @@
 package com.pencilsimulator;
 
+import com.pencildisplay.PencilDisplayHelper;
+
 import android.app.Activity;
 import android.os.Bundle;
 import android.os.Handler;
@@ -62,7 +64,9 @@ public class HighScoreActivity extends Activity {
 
     		if (highScore > 0)
     		{
-    			number.setText(highScore + " sec");
+    			String text = PencilDisplayHelper.formatInterval(highScore);
+    			if (highScore < 60000) { text = text + " sec"; }
+    			number.setText(text);
     		} else
     		{
     			number.setText("No high score yet");

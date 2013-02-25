@@ -150,8 +150,8 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         	mSurfaceHolder = surfaceHolder;
         	paint = new Paint();
         	paint.setColor(Color.GRAY);
-        	paint.setTextAlign(Align.RIGHT);
-        	paint.setTextSize(10.0f * scale + 0.5f);
+        	paint.setTextAlign(Align.CENTER);
+        	paint.setTextSize(60.0f * scale + 0.5f);
         }
         
         /**
@@ -367,10 +367,10 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         	if (balanceStartTime > 0)
         	{
         		String time = PencilDisplayHelper.formatInterval(System.currentTimeMillis() - balanceStartTime);
-        		canvas.drawText(time, mCanvasWidth, 0.98f * mCanvasHeight, paint);
+        		canvas.drawText(time, 0.5f * mCanvasWidth, 0.18f * mCanvasHeight, paint);
         	} else
         	{
-        		canvas.drawText("0", mCanvasWidth, 0.98f * mCanvasHeight, paint);
+        		canvas.drawText("0", 0.5f * mCanvasWidth, 0.18f * mCanvasHeight, paint);
         	}
         }
         
@@ -550,7 +550,7 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         	{
         		//Log.d("pencil", "stopBalanceTimer: going to check high score");
         		//get session duration in seconds
-        		long sessionDuration = (long) ((System.currentTimeMillis() - balanceStartTime)/1000L);
+        		long sessionDuration = System.currentTimeMillis() - balanceStartTime;
         		//update the high score in local memory
         		updateHighScore(sessionDuration);
         		if (updateSharedPreferences)

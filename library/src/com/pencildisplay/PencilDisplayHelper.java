@@ -149,15 +149,17 @@ public class PencilDisplayHelper {
         final long hr = TimeUnit.MILLISECONDS.toHours(l);
         final long min = TimeUnit.MILLISECONDS.toMinutes(l - TimeUnit.HOURS.toMillis(hr));
         final long sec = TimeUnit.MILLISECONDS.toSeconds(l - TimeUnit.HOURS.toMillis(hr) - TimeUnit.MINUTES.toMillis(min));
+        final long ms = TimeUnit.MILLISECONDS.toMillis(l - TimeUnit.HOURS.toMillis(hr) - TimeUnit.MINUTES.toMillis(min) - TimeUnit.SECONDS.toMillis(sec));
+        final long tenths = (long) (ms/100);
         if (hr > 0)
         {
-        	return String.format("%02d:%02d:%02d", hr, min, sec);
+        	return String.format("%02d:%02d:%02d.%1d", hr, min, sec, tenths);
         } else if (min > 0)
         {
-        	return String.format("%02d:%02d", min, sec);
+        	return String.format("%02d:%02d.%1d", min, sec, tenths);
         } else
         {
-        	return sec + "";
+        	return String.format("%d.%1d", sec, tenths);
         }
 
         //final long ms = TimeUnit.MILLISECONDS.toMillis(l - TimeUnit.HOURS.toMillis(hr) - TimeUnit.MINUTES.toMillis(min) - TimeUnit.SECONDS.toMillis(sec));
