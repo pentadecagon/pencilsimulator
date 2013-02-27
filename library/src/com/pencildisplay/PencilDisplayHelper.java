@@ -51,8 +51,17 @@ public class PencilDisplayHelper {
      * 
      * @return boolean True if the user is touching the pencil, otherwise false
      */
-	public boolean isTouchInAreaOfPencil(float mTouchX, float mTouchY, double tiltAngle)
+	public boolean isTouchInAreaOfPencil(float mTouchX, float mTouchY, double tiltAngle, boolean isInverted)
     {
+		//if screen is inverted, translate mTouchX and mTouchY to their standard equivalents
+		if (isInverted)
+		{
+			mTouchX = mCanvasWidth - mTouchX;
+			mTouchY = mCanvasHeight - mTouchY;
+		}
+		
+		//make the effective touch width a bit bigger because the pencil is a bit narrow
+		float effectiveTouchWidth = 1.6f * pencilDisplayWidth;
     	//Log.d("pencil", "called isTouchInAreaOfPencil with mTouchX="+mTouchX+", mTouchY="+mTouchY);
     	/*check if the touch is in the area of the pencil*/        	
     	//if x or y is 0 
@@ -63,8 +72,8 @@ public class PencilDisplayHelper {
 
     	//x - w/2 and tiltAngle need to have the same sign
     	if (
-    		(mTouchX < (0.5f * mCanvasWidth - 0.5f * pencilDisplayWidth) && (tiltAngle > 0))
-    		|| (mTouchX > (0.5f * mCanvasWidth + 0.5f * pencilDisplayWidth) && (tiltAngle < 0))
+    		(mTouchX < (0.5f * mCanvasWidth - 0.5f * effectiveTouchWidth) && (tiltAngle > 0))
+    		|| (mTouchX > (0.5f * mCanvasWidth + 0.5f * effectiveTouchWidth) && (tiltAngle < 0))
 
     	) {
     		//Log.d("pencil", "isTouchInAreaOfPencil false 2");
@@ -81,13 +90,13 @@ public class PencilDisplayHelper {
     	boolean touch;
     	if (tiltAngle == 0)
     	{
-    		touch = ((mTouchX >= (0.5f * mCanvasWidth - 0.5f * pencilDisplayWidth)) && (mTouchX <= (0.5f * mCanvasWidth + 0.5f * pencilDisplayWidth)));
+    		touch = ((mTouchX >= (0.5f * mCanvasWidth - 0.5f * effectiveTouchWidth)) && (mTouchX <= (0.5f * mCanvasWidth + 0.5f * effectiveTouchWidth)));
     		//Log.d("pencil", "isTouchInAreaOfPencil : at 1: "+touch);
     	} else
     	{
     		float x = Math.abs(mTouchX - 0.5f * mCanvasWidth);
     		float yCenter = mCanvasHeight - x/((float) Math.tan(Math.abs(tiltAngle)));
-    		float yRange =  0.5f * pencilDisplayWidth/ ((float) Math.sin(Math.abs(tiltAngle)));
+    		float yRange =  0.5f * effectiveTouchWidth/ ((float) Math.sin(Math.abs(tiltAngle)));
     		touch = ((mTouchY >= (yCenter - yRange)) && (mTouchY <= (yCenter + yRange)));
     		//Log.d("pencil", "isTouchInAreaOfPencil : at 2: "+touch);
     	}
@@ -104,8 +113,15 @@ public class PencilDisplayHelper {
      * 
      * @return double tiltAngle The tilt angle to the horizontal corresponding to the touched position on the screen
      */
-    public double calculateTiltAngleFromTouchPosition(float mTouchX, float mTouchY, double angularOffset)
+    public double calculateTiltAngleFromTouchPosition(float mTouchX, float mTouchY, double angularOffset, boolean isInverted)
     {
+		//if screen is inverted, translate mTouchX and mTouchY to their standard equivalents
+		if (isInverted)
+		{
+			mTouchX = mCanvasWidth - mTouchX;
+			mTouchY = mCanvasHeight - mTouchY;
+		}
+    	
     	if (mTouchX == 0) { return 0; }
     	
     	double x = (double) (mTouchX - 0.5f * mCanvasWidth);

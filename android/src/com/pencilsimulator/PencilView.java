@@ -150,6 +150,16 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         //the time when the pencil last hit the wall, so we can record how long the pencil has been upright
         public long balanceStartTime = -1;
         
+        //the last score, formatted for display, achieved through balancing the pencil
+        public String balanceLastScore = null;
+        //the last time that the balance timer stopped
+        public long balanceStopTime = -1;
+        //the minimum score for the user to achieve for the score to be displayed for a couple of seconds after
+        //the pencil hits the wall
+        final public long BALANCE_LAST_SCORE_DISPLAY_MINIMUM_SCORE = 2000;
+        //the amount of time for which to display the score after the pencil hits the wall
+        final public long BALANCE_LAST_SCORE_DISPLAY_PERIOD = 1000;
+        
         //paint object for drawing
         private Paint paint;
         
@@ -468,14 +478,20 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
 	        	canvas.rotate(-180, mCanvasWidth/2.0f, mCanvasHeight/2.0f);
         	}
         	
-        	if (balanceStartTime > 0)
+        	long now = System.currentTimeMillis();
+        	
+        	String time;
+        	if (balanceStopTime > 0 && ((now - balanceStopTime) < BALANCE_LAST_SCORE_DISPLAY_PERIOD))
         	{
-        		String time = PencilDisplayHelper.formatInterval(System.currentTimeMillis() - balanceStartTime);
-        		canvas.drawText(time, 0.5f * mCanvasWidth, 0.18f * mCanvasHeight, paint);
+        		time = balanceLastScore;
+        	} else if (balanceStartTime > 0)
+        	{
+        		time = PencilDisplayHelper.formatInterval(now - balanceStartTime);
         	} else
         	{
-        		canvas.drawText("0", 0.5f * mCanvasWidth, 0.18f * mCanvasHeight, paint);
+        		time = "0";
         	}
+        	canvas.drawText(time, 0.5f * mCanvasWidth, 0.18f * mCanvasHeight, paint);
         	
         	if (isInverted && !fallConfig.doAnimation)
         	{
@@ -551,20 +567,18 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
 	            underTouchControl = false;
 	            if (mTouchX > -1)
 	            {
-	            	underTouchControl = displayHelper.isTouchInAreaOfPencil(mTouchX, mTouchY, tiltAngle);
+	            	underTouchControl = displayHelper.isTouchInAreaOfPencil(mTouchX, mTouchY, tiltAngle, isInverted);
 	            	//if this is the first time the user has touched the pencil, calculate the angular offset
 	            	//so that the user gets a smooth experience when they move the pencil manually
 	            	if (underTouchControl && !previousUnderTouchControl)
 	            	{
 	            		//angular offset between the position the user is touching the pencil and the pencil center
-	            		touchControlOffset = displayHelper.calculateTiltAngleFromTouchPosition(mTouchX, mTouchY, 0.0) - tiltAngle;
+	            		touchControlOffset = displayHelper.calculateTiltAngleFromTouchPosition(mTouchX, mTouchY, 0.0, isInverted) - tiltAngle;
 	            		//set the balanceStartTime to -1 to show that we are no longer timing how long the pencil is in balance
-	            		balanceTimerShouldBeActive = false;
-	            	} else if (!underTouchControl && previousUnderTouchControl)
-	            	{
-	            		//if the user has just released the pencil, start the balance timer again
-	            		balanceTimerShouldBeActive = true;
+	            		Log.d("pencil", "user has touched pencil");
 	            	}
+
+	            	balanceTimerShouldBeActive = !underTouchControl;
 	            }
 	        	
 	        	//if pencil is at rest such that it's impossible to move it, don't do anything else
@@ -588,7 +602,7 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
 	            {
 	            	//if user is touching pencil, calculate the motion directly from the touch position
 	            	double oldTiltAngle = tiltAngle;
-	            	tiltAngle = displayHelper.calculateTiltAngleFromTouchPosition(mTouchX, mTouchY, touchControlOffset);
+	            	tiltAngle = displayHelper.calculateTiltAngleFromTouchPosition(mTouchX, mTouchY, touchControlOffset, isInverted);
 	            	angularVelocity	= (tiltAngle - oldTiltAngle)/elapsed;
 	            } else
 	            {
@@ -646,11 +660,11 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
             //update balance timer
             if (balanceTimerShouldBeActive && (balanceStartTime < 0))
             {
-            	//Log.d("pencil", "going to start balance timer (balanceStartTime="+balanceStartTime+", tiltAngle="+tiltAngle+", maxTiltAngle="+maxTiltAngle);
+            	Log.d("pencil", "going to start balance timer (balanceStartTime="+balanceStartTime+", tiltAngle="+tiltAngle+", maxTiltAngle="+maxTiltAngle);
             	startBalanceTimer();
             } else if (!balanceTimerShouldBeActive && (balanceStartTime > 0))
             {
-            	//Log.d("pencil", "going to stop balance timer (balanceStartTime="+balanceStartTime);
+            	Log.d("pencil", "going to stop balance timer (balanceStartTime="+balanceStartTime);
             	stopBalanceTimer(false);
             } else
             {
@@ -672,11 +686,24 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         	//Log.d("pencil", "stopBalanceTimer called with balanceStartTime="+balanceStartTime);
         	if (balanceStartTime > 0)
         	{
+        		long now = System.currentTimeMillis();
         		//Log.d("pencil", "stopBalanceTimer: going to check high score");
         		//get session duration in seconds
-        		long sessionDuration = System.currentTimeMillis() - balanceStartTime;
+        		long sessionDuration = now - balanceStartTime;
         		//update the high score in local memory
         		updateHighScore(sessionDuration);
+        		
+        		//if the session was sufficiently impressive, continue to display it for a couple of seconds
+        		if (sessionDuration > BALANCE_LAST_SCORE_DISPLAY_MINIMUM_SCORE)
+        		{
+        			balanceLastScore = PencilDisplayHelper.formatInterval(sessionDuration);
+        			balanceStopTime = now;
+        		} else
+        		{
+        			balanceLastScore = null;
+        			balanceStopTime = -1;
+        		}
+        		
         		if (updateSharedPreferences)
         		{
         			//if the update shared preferences flag is set, update the shared preferences in the device storage
