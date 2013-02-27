@@ -160,8 +160,11 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         //the amount of time for which to display the score after the pencil hits the wall
         final public long BALANCE_LAST_SCORE_DISPLAY_PERIOD = 1000;
         
-        //paint object for drawing
-        private Paint paint;
+        //paint object for drawing timer
+        private Paint paintTimer;
+        
+        //paint object for drawing info text
+        private Paint paintText;
         
         //get the screen's density scale
         final float scale = getResources().getDisplayMetrics().density;
@@ -175,14 +178,22 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         //runs the falling pencil animation when the phone is flipped upside down
         private FallAnimator fallAnimator = null;
 
+        private int framesPerSecond = 0;
+        
         public PencilThread(SurfaceHolder surfaceHolder, Context context,
                 Handler handler) {
         	
         	mSurfaceHolder = surfaceHolder;
-        	paint = new Paint();
-        	paint.setColor(Color.GRAY);
-        	paint.setTextAlign(Align.CENTER);
-        	paint.setTextSize(60.0f * scale + 0.5f);
+        	
+        	paintTimer = new Paint();
+        	paintTimer.setColor(Color.GRAY);
+        	paintTimer.setTextAlign(Align.CENTER);
+        	paintTimer.setTextSize(60.0f * scale + 0.5f);
+        	
+        	paintText = new Paint();
+        	paintText.setColor(Color.GRAY);
+        	paintText.setTextAlign(Align.RIGHT);
+        	paintText.setTextSize(10.0f * scale + 0.5f);
         }
         
         /**
@@ -491,7 +502,10 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         	{
         		time = "0";
         	}
-        	canvas.drawText(time, 0.5f * mCanvasWidth, 0.18f * mCanvasHeight, paint);
+        	canvas.drawText(time, 0.5f * mCanvasWidth, 0.18f * mCanvasHeight, paintTimer);
+        	
+            //show frames per second
+            canvas.drawText("FPS: "+framesPerSecond, mCanvasWidth, 0.98f * mCanvasHeight, paintText);
         	
         	if (isInverted && !fallConfig.doAnimation)
         	{
@@ -671,6 +685,9 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
             	//do nothing
             }
             
+            //calculate frames per second for display
+            framesPerSecond = (int) (1000L/(now - mLastTime));
+
             mLastTime = now;
             return true;
         }
