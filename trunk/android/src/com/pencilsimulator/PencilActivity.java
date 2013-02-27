@@ -92,7 +92,6 @@ public class PencilActivity extends Activity implements SensorEventListener {
 	protected void onResume() {
 		super.onResume();
 	    sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-	    mPencilView.drawingInitialized = false;
 	}
 
 	@Override
