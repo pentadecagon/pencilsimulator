@@ -1,4 +1,4 @@
-package com.pencildisplay;
+package com.pencilanimations;
 
 /**
  * Holds config parameters for an explosion
