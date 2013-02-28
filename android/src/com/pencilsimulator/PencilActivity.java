@@ -117,7 +117,9 @@ public class PencilActivity extends Activity implements SensorEventListener {
 		
 		if (gravityData != null) {
 			//convert x, y to polar coordinates
-			double g = Math.sqrt((gravityData[0] * gravityData[0] + gravityData[1] * gravityData[1]));
+			//the magnitude of the force is always the total magnitude including the z-component
+			double g = Math.sqrt((gravityData[0] * gravityData[0] + gravityData[1] * gravityData[1] + gravityData[2] * gravityData[2]));
+			//we only used the force in the x/y plane
 			double theta = Math.atan2(gravityData[0], gravityData[1]);
 
 			if (mPencilView.thread != null)
