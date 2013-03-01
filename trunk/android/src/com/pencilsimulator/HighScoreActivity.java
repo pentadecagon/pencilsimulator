@@ -19,7 +19,7 @@ public class HighScoreActivity extends Activity {
 		setContentView(R.layout.activity_high_score);
 		
 		TextView title = (TextView) findViewById(R.id.highScoreTitle);
-		title.setText("High score @ gravity " + SettingsActivity.gravityFactor);
+		title.setText("High score @ gravity " + PencilView.gravityFactor);
 		
 		LinearLayout progress = (LinearLayout) findViewById(R.id.highScoreProgress);
     	progress.setVisibility(View.VISIBLE);
@@ -41,7 +41,7 @@ public class HighScoreActivity extends Activity {
     	String key = "highscore_grav_"+SettingsActivity.gravityFactor;
     	long highScore = settings.getLong(key, 0L);
     	return highScore;*/
-		String key = "highscore_grav_"+SettingsActivity.gravityFactor;
+		String key = "highscore_grav_"+PencilView.gravityFactor;
     	Long highScore = PencilView.highScores.get(key);
     	if (highScore != null)
     	{

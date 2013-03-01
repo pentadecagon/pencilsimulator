@@ -34,6 +34,12 @@ import com.pencilanimations.FallAnimator;
 class PencilView extends SurfaceView implements SurfaceHolder.Callback {
 
 	static int EXPLODE_STYLE = 1;
+	
+	//will be set from shared preferences in setGravityFromSharedPreferences
+	public static float gravityFactor = 0.015f;
+	
+	final static String SETTINGS_SHARED_PREFS_NAME = "PencilSettings";
+	final static String HIGH_SCORE_SHARED_PREFS_NAME = "PencilHighScores";
 
 	public static HashMap<String, Long> highScores = new HashMap<String, Long>();
 	
@@ -553,7 +559,6 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
          *  re-drawn, otherwise false
          */
         private boolean updatePhysics() {
-
         	//initialize mLastTime
         	if (mLastTime == 0)
         	{
@@ -621,7 +626,7 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
 	            } else
 	            {
 	            	//calculate pencil's motion under acceleration as measured from the sensors
-		            double[] motionArray = motionSimulator.calc(tiltAngle, angularVelocity, SettingsActivity.gravityFactor*g, theta, elapsed);
+		            double[] motionArray = motionSimulator.calc(tiltAngle, angularVelocity, PencilView.gravityFactor*g, theta, elapsed);
 		            tiltAngle = motionArray[0];
 		            angularVelocity = motionArray[1];
 	            }
@@ -674,11 +679,11 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
             //update balance timer
             if (balanceTimerShouldBeActive && (balanceStartTime < 0))
             {
-            	Log.d("pencil", "going to start balance timer (balanceStartTime="+balanceStartTime+", tiltAngle="+tiltAngle+", maxTiltAngle="+maxTiltAngle);
+            	//Log.d("pencil", "going to start balance timer (balanceStartTime="+balanceStartTime+", tiltAngle="+tiltAngle+", maxTiltAngle="+maxTiltAngle);
             	startBalanceTimer();
             } else if (!balanceTimerShouldBeActive && (balanceStartTime > 0))
             {
-            	Log.d("pencil", "going to stop balance timer (balanceStartTime="+balanceStartTime);
+            	//Log.d("pencil", "going to stop balance timer (balanceStartTime="+balanceStartTime);
             	stopBalanceTimer(false);
             } else
             {
@@ -734,7 +739,7 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         public void updateHighScore(long sessionDuration)
     	{
     		//Log.d("pencil", "called updateHighScore");
-        	String key = "highscore_grav_"+SettingsActivity.gravityFactor;
+        	String key = "highscore_grav_"+PencilView.gravityFactor;
         	Long highScore = PencilView.highScores.get(key);
         	if (highScore == null || (sessionDuration > highScore))
         	{
@@ -747,7 +752,7 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         {
         	Log.d("pencil", "called updateHighScoreSharedPreferences");
         	PencilActivity ac = (PencilActivity) PencilView.this.getContext();
-        	SharedPreferences settings = ac.getSharedPreferences("PencilHighScores", PencilActivity.MODE_PRIVATE);
+        	SharedPreferences settings = ac.getSharedPreferences(HIGH_SCORE_SHARED_PREFS_NAME, PencilActivity.MODE_PRIVATE);
         	for (String key : PencilView.highScores.keySet())
         	{
             	if (PencilView.highScores.get(key) != null)
@@ -879,14 +884,22 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
     public void setHighScoresFromSharedPreferences()
     {
     	Log.d("pencil", "called setHighScoresFromSharedPreferences");
-    	PencilActivity ac = (PencilActivity) PencilView.this.getContext();
-    	SharedPreferences settings = ac.getSharedPreferences("PencilHighScores", PencilActivity.MODE_PRIVATE);
+    	SharedPreferences settings = getContext().getSharedPreferences(HIGH_SCORE_SHARED_PREFS_NAME, PencilActivity.MODE_PRIVATE);
     	PencilView.highScores = (HashMap<String, Long>) settings.getAll();
 
     	for (String key : PencilView.highScores.keySet())
     	{
     		Log.d("pencil", "setHighScoresFromSharedPreferences: set local value "+key+", "+PencilView.highScores.get(key));
     	}
+    }
+    
+    
+    public void setGravityFromSharedPreferences()
+    {
+        SharedPreferences settings = getContext().getSharedPreferences(SETTINGS_SHARED_PREFS_NAME, PencilActivity.MODE_PRIVATE);
+        String gravityFactorString = settings.getString("pref_gravity", "0.015");
+        gravityFactor = Float.parseFloat(gravityFactorString);
+        Log.d("pencil", "setGravityFromSharedPreferences: set local value pref_gravity, "+gravityFactor);
     }
     
     /** The thread that actually draws the animation */
@@ -916,6 +929,8 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
 
     	//set high scores from shared preferences if not yet done
     	setHighScoresFromSharedPreferences();
+    	//set gravity from shared preferences
+    	setGravityFromSharedPreferences();
     	
     	if (thread != null)
     	{
