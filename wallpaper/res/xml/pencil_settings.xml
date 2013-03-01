@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory 
+        android:title="Gravity"
+        android:key="first_category">
+        
+
+ <ListPreference android:entries="@array/pref_gravity_keys" 
+     android:title="Gravity" 
+     android:key="pref_gravity" 
+     android:entryValues="@array/pref_gravity_values" 
+     android:summary="Strength of gravity as compared with Earth" 
+     android:defaultValue="20" />
+            
+    </PreferenceCategory>
+
+</PreferenceScreen>

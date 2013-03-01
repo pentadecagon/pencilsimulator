@@ -22,6 +22,11 @@
             </intent-filter>
             <meta-data android:name="android.service.wallpaper" android:resource="@xml/pencil" />
         </service>
+        <activity
+            android:label="Settings"
+            android:name="com.pencilwallpaper.PencilWallpaperSettings"
+            android:exported="true">
+        </activity>
 
     </application>
 </manifest>
