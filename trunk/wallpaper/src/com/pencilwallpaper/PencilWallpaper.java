@@ -904,8 +904,14 @@ public class PencilWallpaper extends WallpaperService {
         	canvas.drawText(time, 0.5f * mCanvasWidth, 0.18f * mCanvasHeight, paintTimer);
         	
             //show frames per second
-            canvas.drawText("FPS: "+framesPerSecond, mCanvasWidth, 0.98f * mCanvasHeight, paintText);
+            canvas.drawText("FPS: "+framesPerSecond, mCanvasWidth, 0.955f * mCanvasHeight, paintText);
         	
+            if (highScores.get("highscore_grav_"+gravityFactor) != null)
+            {
+            	long highScore = highScores.get("highscore_grav_"+gravityFactor);
+            	canvas.drawText("HISCORE: "+PencilDisplayHelper.formatInterval(highScore), mCanvasWidth, 0.98f * mCanvasHeight, paintText);
+            }
+            
         	if (isInverted && !fallConfig.doAnimation)
         	{
         		canvas.restore();
