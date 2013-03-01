@@ -7,5 +7,13 @@
 
     <!-- Wallpaper showing a pencil -->
     <string name="wallpaper_pencil">Pencil Wallpaper</string>
+    
+    <string name="pencil_settings">Settings</string>
+    
+    <string name="pencil_settings_title">Settings</string>
+    
+    <string name="pencil_settings_summary">Settings</string>
 
+
+    
 </resources>
