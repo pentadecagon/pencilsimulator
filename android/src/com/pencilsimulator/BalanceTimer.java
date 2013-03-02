@@ -29,7 +29,7 @@ public class BalanceTimer {
     //timer is stopped
     final public static int BALANCE_TIMER_STATE_STOPPED = 1;
     //timer is delayed
-    final public static int BALANCE_TIMER_STATE_DELAYED = 2;
+    final public static int BALANCE_TIMER_STATE_PAUSED = 2;
     
     //current state of timer
     public int state = BALANCE_TIMER_STATE_STOPPED;
@@ -74,8 +74,7 @@ public class BalanceTimer {
     	balanceStartTime = now;
     	balanceStopTime = -1;
     	setTimerState(BALANCE_TIMER_STATE_RUNNING);
-    	//set game state
-    	this.ownerThread.setGameState(PencilThread.STATE_RUNNING);
+    	ownerThread.hideTapToStartMessage();
     }
     
     /**
@@ -114,7 +113,8 @@ public class BalanceTimer {
     		{
     			Log.d("pencil", "stopBalanceTimer.stop: session duration is above min so going to delay game");
     			//balanceLastScore = PencilDisplayHelper.formatInterval(sessionDuration);
-    			timerState = BALANCE_TIMER_STATE_DELAYED;
+    			timerState = BALANCE_TIMER_STATE_PAUSED;
+    			ownerThread.showTapToStartMessage();
     		} else
     		{
     			Log.d("pencil", "stopBalanceTimer.stop: session duration is below min so not going to delay game");
@@ -129,27 +129,6 @@ public class BalanceTimer {
     	balanceStartTime = -1;
     	setTimerState(timerState);
     	
-    }
-    
-    /**
-     * Check if the game should be paused
-     * 
-     * @param long now The current time in milliseconds
-     */
-    public boolean checkAndPauseGameIfNecessary(long now)
-    {
-    	if (state == BALANCE_TIMER_STATE_DELAYED
-    			&& (
-    					balanceStopTime < 0 //should never happen but have this check just in case
-    					|| ((now - balanceStopTime) > BALANCE_PAUSE_GAME_DELAY_PERIOD) 
-    				)
-    	)
-    	{
-        	//set game state
-    		this.ownerThread.setGameState(PencilThread.STATE_PAUSED);
-    		return true;
-    	}
-    	return false;
     }
 
     /**

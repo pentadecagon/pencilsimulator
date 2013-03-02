@@ -324,6 +324,28 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
             mRun = b;
         }
 
+        public void showTapToStartMessage()
+        {
+        	 Message msg = mHandler.obtainMessage();
+             Bundle b = new Bundle();
+             b.putBoolean("inverted", isInverted);
+             b.putString("text", "tap to restart timer");
+             b.putInt("viz", View.VISIBLE);
+             msg.setData(b);
+             mHandler.sendMessage(msg);
+        }
+        
+        public void hideTapToStartMessage()
+        {
+        	Message msg = mHandler.obtainMessage();
+            Bundle b = new Bundle();
+            b.putBoolean("inverted", isInverted);
+            b.putString("text", "");
+            b.putInt("viz", View.GONE);
+            msg.setData(b);
+            mHandler.sendMessage(msg);
+        }
+        
         /**
          * Sets the game mode. That is, whether we are running, paused, in the
          * failure state etc.
@@ -334,25 +356,6 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         public void setGameState(int mode) {
             synchronized (mSurfaceHolder) {
                 setGameState(mode, null);
-                
-                if (mode == STATE_PAUSED) {
-	                Message msg = mHandler.obtainMessage();
-	                Bundle b = new Bundle();
-	                b.putBoolean("inverted", isInverted);
-	                b.putString("text", "tap to restart");
-	                b.putInt("viz", View.VISIBLE);
-	                msg.setData(b);
-	                mHandler.sendMessage(msg);
-               } else
-               {
-            	   Message msg = mHandler.obtainMessage();
-	                Bundle b = new Bundle();
-	                b.putBoolean("inverted", isInverted);
-	                b.putString("text", "");
-	                b.putInt("viz", View.GONE);
-	                msg.setData(b);
-	                mHandler.sendMessage(msg);
-               }
             }
         }
     
@@ -508,6 +511,11 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         		interpolation = 1.0f;
         		//end animation
         		fallConfig.doAnimation = false;
+        		if (balanceTimer.state == BalanceTimer.BALANCE_TIMER_STATE_PAUSED)
+        		{
+        			//renew the "tap to restart" message so it's the right way up
+        			showTapToStartMessage();
+        		}
         	}
         	//Log.d("pencil", "drawing fall animation with interpolation="+interpolation);
         	fallAnimator.draw(canvas, interpolation);
@@ -604,11 +612,6 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
             // This allows the game-start to delay the start of the physics
             // by 100ms or whatever.
             if (mLastTime >= now) return true;
-
-            if (balanceTimer.checkAndPauseGameIfNecessary(now))
-            {
-            	return false;
-            }
 
         	boolean balanceTimerShouldBeActive = true;
 
@@ -720,7 +723,7 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
             }
             
             //update balance timer
-        	if (balanceTimer.state == BalanceTimer.BALANCE_TIMER_STATE_DELAYED)
+        	if (balanceTimer.state == BalanceTimer.BALANCE_TIMER_STATE_PAUSED)
         	{
         	  //game is waiting to be paused: do nothing
         	} else if (balanceTimerShouldBeActive && (balanceTimer.state != BalanceTimer.BALANCE_TIMER_STATE_RUNNING))
@@ -959,16 +962,13 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
     	if (event.getAction() == MotionEvent.ACTION_MOVE) {
             thread.mTouchX = event.getX();
             thread.mTouchY = event.getY();
-        } else if (event.getAction() == MotionEvent.ACTION_DOWN)
+        } else if (event.getAction() == MotionEvent.ACTION_UP)
         {
-        	if (thread.mMode == PencilThread.STATE_PAUSED)
-        	{
-        		thread.tiltAngle = 0;
-        		thread.angularVelocity = 0;
-        		long now = System.currentTimeMillis();
-        		thread.mLastTime = now;
-        		thread.balanceTimer.start(now);
-        	}
+        	thread.mTouchX = -1;
+        	thread.mTouchY = -1;
+        	long now = System.currentTimeMillis();
+        	thread.mLastTime = now;
+    		thread.balanceTimer.start(now);
         } else
         {
         	thread.mTouchX = -1;
