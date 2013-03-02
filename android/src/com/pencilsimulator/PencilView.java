@@ -13,28 +13,37 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Paint.Align;
 import android.graphics.drawable.BitmapDrawable;
+import android.os.Bundle;
 import android.os.Handler;
+import android.os.Message;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.View;
+import android.widget.TextView;
+import android.widget.Toast;
 
-import com.pencildisplay.PencilDisplayHelper;
-import com.pencilmotionsimulator.MotionSimulator;
 import com.explode1.Exploder1;
 import com.explode2.Exploder2;
 import com.explode3.Exploder3;
 import com.pencilanimations.ExplosionConfig;
-import com.pencilanimations.FallConfig;
 import com.pencilanimations.FallAnimator;
+import com.pencilanimations.FallConfig;
+import com.pencildisplay.PencilDisplayHelper;
+import com.pencilmotionsimulator.MotionSimulator;
 
 /** Show a pencil balanced on its tip, falling over. */
 
 class PencilView extends SurfaceView implements SurfaceHolder.Callback {
 
 	static int EXPLODE_STYLE = 1;
-	
+    
+    private TextView mStatusText;
+    
+    private TextViewUD mStatusTextUD;
+    
 	//will be set from shared preferences in setGravityFromSharedPreferences
 	public static float gravityFactor = 0.015f;
 	
@@ -45,6 +54,8 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
 	
     class PencilThread extends Thread {
   
+
+        
     	//gravitational parameter
     	private double g = 9.81;
     	
@@ -82,10 +93,11 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
     	//angular velocity
     	private double angularVelocity = INITIAL_ANGULAR_VELOCITY;
 
+    	private Handler mHandler;
         /*
          * State-tracking constants
          */
-        public static final int STATE_READY = 1;
+        public static final int STATE_PAUSED = 1;
         public static final int STATE_RUNNING = 2;
 
         /**
@@ -153,18 +165,7 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         //angular offset between the position the user is touching the pencil and the pencil center
         private double touchControlOffset = 0.0f;
         
-        //the time when the pencil last hit the wall, so we can record how long the pencil has been upright
-        public long balanceStartTime = -1;
-        
-        //the last score, formatted for display, achieved through balancing the pencil
-        public String balanceLastScore = null;
-        //the last time that the balance timer stopped
-        public long balanceStopTime = -1;
-        //the minimum score for the user to achieve for the score to be displayed for a couple of seconds after
-        //the pencil hits the wall
-        final public long BALANCE_LAST_SCORE_DISPLAY_MINIMUM_SCORE = 2000;
-        //the amount of time for which to display the score after the pencil hits the wall
-        final public long BALANCE_LAST_SCORE_DISPLAY_PERIOD = 1000;
+
         
         //paint object for drawing timer
         private Paint paintTimer;
@@ -186,8 +187,12 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
 
         private int framesPerSecond = 0;
         
+        public BalanceTimer balanceTimer;
+
         public PencilThread(SurfaceHolder surfaceHolder, Context context,
                 Handler handler) {
+        	
+        	mHandler = handler;
         	
         	mSurfaceHolder = surfaceHolder;
         	
@@ -200,8 +205,10 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         	paintText.setColor(Color.GRAY);
         	paintText.setTextAlign(Align.RIGHT);
         	paintText.setTextSize(10.0f * scale + 0.5f);
+        	
+        	balanceTimer = new BalanceTimer(context, this);
         }
-        
+
         /**
          * Initialize the pencil image
          */
@@ -278,14 +285,15 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
                         if (mMode == STATE_RUNNING)
                         {
                         	physicsUpdated = updatePhysics();
-                        	if (physicsUpdated)
-                        	{
-                        		noUpdateCount = 0;
-                        	} else
-                        	{
-                        		noUpdateCount++;
-                        	}
                         }
+                        
+                    	if (physicsUpdated)
+                    	{
+                    		noUpdateCount = 0;
+                    	} else
+                    	{
+                    		noUpdateCount++;
+                    	} 
 
                         if (!physicsUpdated && noUpdateCount > 5)
                         {
@@ -320,12 +328,31 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
          * Sets the game mode. That is, whether we are running, paused, in the
          * failure state etc.
          *
-         * @see #setState(int, CharSequence)
+         * @see #setGameState(int, CharSequence)
          * @param mode one of the STATE_* constants
          */
-        public void setState(int mode) {
+        public void setGameState(int mode) {
             synchronized (mSurfaceHolder) {
-                setState(mode, null);
+                setGameState(mode, null);
+                
+                if (mode == STATE_PAUSED) {
+	                Message msg = mHandler.obtainMessage();
+	                Bundle b = new Bundle();
+	                b.putBoolean("inverted", isInverted);
+	                b.putString("text", "tap to restart");
+	                b.putInt("viz", View.VISIBLE);
+	                msg.setData(b);
+	                mHandler.sendMessage(msg);
+               } else
+               {
+            	   Message msg = mHandler.obtainMessage();
+	                Bundle b = new Bundle();
+	                b.putBoolean("inverted", isInverted);
+	                b.putString("text", "");
+	                b.putInt("viz", View.GONE);
+	                msg.setData(b);
+	                mHandler.sendMessage(msg);
+               }
             }
         }
     
@@ -336,7 +363,7 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
          * @param mode one of the STATE_* constants
          * @param message string to add to screen or null
          */
-        public void setState(int mode, CharSequence message) {
+        public void setGameState(int mode, CharSequence message) {
 
             synchronized (mSurfaceHolder) {
                 mMode = mode;
@@ -406,7 +433,7 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         	
         	drawBackground(canvas);
         
-        	if (fallConfig.doAnimation)
+        	if (fallConfig.doAnimation && (mMode == STATE_RUNNING))
         	{
         		//Log.d("pencil", "doDraw: fallConfig.doAnimation is true so going to draw falling pencil");
         		drawFallAnimation(canvas);
@@ -498,15 +525,12 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         	long now = System.currentTimeMillis();
         	
         	String time;
-        	if (balanceStopTime > 0 && ((now - balanceStopTime) < BALANCE_LAST_SCORE_DISPLAY_PERIOD))
+        	if (balanceTimer.state == BalanceTimer.BALANCE_TIMER_STATE_RUNNING)
         	{
-        		time = balanceLastScore;
-        	} else if (balanceStartTime > 0)
-        	{
-        		time = PencilDisplayHelper.formatInterval(now - balanceStartTime);
+        		time = PencilDisplayHelper.formatInterval(now - balanceTimer.balanceStartTime);
         	} else
         	{
-        		time = "0";
+        		time = balanceTimer.balanceLastScore;
         	}
         	canvas.drawText(time, 0.5f * mCanvasWidth, 0.18f * mCanvasHeight, paintTimer);
         	
@@ -525,7 +549,15 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         private void drawExplosion(Canvas canvas, ExplosionConfig config)
         {
         	long now = System.currentTimeMillis();
-        	long duration = now - config.explosionStartTime;
+        	long duration;
+        	if (mMode == STATE_PAUSED)
+        	{
+        		//if paused, freeze at the last explosion time
+        		duration = (balanceTimer.balanceStopTime + BalanceTimer.BALANCE_PAUSE_GAME_DELAY_PERIOD) - config.explosionStartTime;
+        	} else
+        	{
+        		duration = now - config.explosionStartTime;
+        	}
         	if (EXPLODE_STYLE == 1)
         	{
         		float interpolation = duration/100f;
@@ -567,11 +599,16 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
         	}
 
         	long now = System.currentTimeMillis();
-  
+
         	// Do nothing if mLastTime is in the future.
             // This allows the game-start to delay the start of the physics
             // by 100ms or whatever.
             if (mLastTime >= now) return true;
+
+            if (balanceTimer.checkAndPauseGameIfNecessary(now))
+            {
+            	return false;
+            }
 
         	boolean balanceTimerShouldBeActive = true;
 
@@ -609,7 +646,11 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
 		        		mLastTime = now;
 		        		tiltAngle = (tiltAngle > 0) ? maxTiltAngle : -maxTiltAngle;
 		        		angularVelocity = 0.0;
-		        		balanceStartTime = -1;
+		        		//balance timer should not be running at this point, but if it is, stop it
+		        		if(balanceTimer.state == BalanceTimer.BALANCE_TIMER_STATE_RUNNING)
+		        		{
+		        			balanceTimer.stop(false, now);
+		        		}
 		        		return false;
 		        	}
 	            }
@@ -672,19 +713,24 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
 	            if (Math.abs(tiltAngle) >= 0.995*maxTiltAngle)
 	            {
 	            	//reset the timer that records how long since the pencil hit the wall
+	            	Log.d("pencil", "going to stop timer &  pause game");
+	            	balanceTimer.stop(true, now);
 	            	balanceTimerShouldBeActive = false;
 	            }
             }
             
             //update balance timer
-            if (balanceTimerShouldBeActive && (balanceStartTime < 0))
+        	if (balanceTimer.state == BalanceTimer.BALANCE_TIMER_STATE_DELAYED)
+        	{
+        	  //game is waiting to be paused: do nothing
+        	} else if (balanceTimerShouldBeActive && (balanceTimer.state != BalanceTimer.BALANCE_TIMER_STATE_RUNNING))
             {
             	//Log.d("pencil", "going to start balance timer (balanceStartTime="+balanceStartTime+", tiltAngle="+tiltAngle+", maxTiltAngle="+maxTiltAngle);
-            	startBalanceTimer();
-            } else if (!balanceTimerShouldBeActive && (balanceStartTime > 0))
+            	balanceTimer.start(now);
+            } else if (!balanceTimerShouldBeActive && (balanceTimer.state == BalanceTimer.BALANCE_TIMER_STATE_RUNNING))
             {
             	//Log.d("pencil", "going to stop balance timer (balanceStartTime="+balanceStartTime);
-            	stopBalanceTimer(false);
+            	balanceTimer.stop(false, now);
             } else
             {
             	//do nothing
@@ -695,86 +741,6 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
 
             mLastTime = now;
             return true;
-        }
-        
-        public void startBalanceTimer()
-        {
-        	//Log.d("pencil", "startBalanceTimer called");
-        	balanceStartTime = System.currentTimeMillis();
-        }
-        
-        public void stopBalanceTimer(boolean updateSharedPreferences)
-        {
-        	//Log.d("pencil", "stopBalanceTimer called with balanceStartTime="+balanceStartTime);
-        	if (balanceStartTime > 0)
-        	{
-        		long now = System.currentTimeMillis();
-        		//Log.d("pencil", "stopBalanceTimer: going to check high score");
-        		//get session duration in seconds
-        		long sessionDuration = now - balanceStartTime;
-        		//update the high score in local memory
-        		updateHighScore(sessionDuration);
-        		
-        		//if the session was sufficiently impressive, continue to display it for a couple of seconds
-        		if (sessionDuration > BALANCE_LAST_SCORE_DISPLAY_MINIMUM_SCORE)
-        		{
-        			balanceLastScore = PencilDisplayHelper.formatInterval(sessionDuration);
-        			balanceStopTime = now;
-        		} else
-        		{
-        			balanceLastScore = null;
-        			balanceStopTime = -1;
-        		}
-        		
-        		if (updateSharedPreferences)
-        		{
-        			//if the update shared preferences flag is set, update the shared preferences in the device storage
-        			//so that the high scores will be remembered next time we start
-        			updateHighScoreSharedPreferences();
-        		}
-        	}
-        	balanceStartTime = -1;
-        }
-        
-        public void updateHighScore(long sessionDuration)
-    	{
-    		//Log.d("pencil", "called updateHighScore");
-        	String key = "highscore_grav_"+PencilView.gravityFactor;
-        	Long highScore = PencilView.highScores.get(key);
-        	if (highScore == null || (sessionDuration > highScore))
-        	{
-        		//Log.d("pencil", "checkAndUpdateHighScore: going to update high score to "+sessionDuration);
-        		PencilView.highScores.put(key, sessionDuration);
-        	}
-    	}
-        
-        public void updateHighScoreSharedPreferences()
-        {
-        	Log.d("pencil", "called updateHighScoreSharedPreferences");
-        	PencilActivity ac = (PencilActivity) PencilView.this.getContext();
-        	SharedPreferences settings = ac.getSharedPreferences(HIGH_SCORE_SHARED_PREFS_NAME, PencilActivity.MODE_PRIVATE);
-        	for (String key : PencilView.highScores.keySet())
-        	{
-            	if (PencilView.highScores.get(key) != null)
-            	{
-            		long oldHighScore = settings.getLong(key, 0L);
-            		long newHighScore = PencilView.highScores.get(key);
-            		if (newHighScore > oldHighScore)
-            		{
-            			Log.d("pencil", "updateHighScoreSharedPreferences: going to update value for "+key);
-            			Log.d("pencil", "updateHighScoreSharedPreferences: old value: "+oldHighScore+", newHighScore="+newHighScore);
-            			SharedPreferences.Editor editor = settings.edit();
-                        editor.putLong(key, newHighScore);
-                        editor.commit();
-            		} else
-            		{
-            			Log.d("pencil", "updateHighScoreSharedPreferences: not going to update value for "+key+" because old score is higher than new score");
-            			Log.d("pencil", "updateHighScoreSharedPreferences: old value: "+oldHighScore+", newHighScore="+newHighScore);
-            		}
-            	}
-        	}
-        	
-        	
         }
 
         /**
@@ -940,10 +906,25 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
     	
     	// create thread
         thread = new PencilThread(holder, getContext(), new Handler() {
+        	
+        	 @Override
+             public void handleMessage(Message m) {
+        		 if (m.getData().getBoolean("inverted"))
+        		 {
+        			 mStatusText.setVisibility(View.GONE);
+        			 mStatusTextUD.setVisibility(m.getData().getInt("viz"));
+	                 mStatusTextUD.setText(m.getData().getString("text"));
+        		 } else
+        		 {
+        			 mStatusTextUD.setVisibility(View.GONE);
+        			 mStatusText.setVisibility(m.getData().getInt("viz"));
+	                 mStatusText.setText(m.getData().getString("text"));
+        		 }
+             }
         });
-        thread.balanceStartTime = -1;
-        thread.setState(PencilThread.STATE_RUNNING);
-
+        
+        thread.setGameState(PencilThread.STATE_RUNNING);
+        
     	thread.setRunning(true);
     	thread.start();
     	
@@ -959,26 +940,37 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
     	Log.d("pencil", "called surfaceDestroyed");
     	if (thread != null)
     	{
-        	if (thread.balanceStartTime > 0)
-        	{
-        		long sessionDuration = (long) ((System.currentTimeMillis() - thread.balanceStartTime)/1000L);
-        		Log.d("pencil", "going to update high score to "+sessionDuration);
-        		thread.stopBalanceTimer(true);
-        		thread.balanceStartTime = -1;
-        	}
+
+        	thread.balanceTimer.stop(false, System.currentTimeMillis());
+        	thread.balanceTimer.updateHighScoreSharedPreferences();
+
     		thread.setRunning(false);
     		thread.interrupt();
     		thread = null;
     	}
     }
-    
+    public void setTextViews(TextView textView, TextViewUD textViewUD) {
+        mStatusText = textView;
+        mStatusTextUD = textViewUD;
+    }
     @Override
     public boolean onTouchEvent(MotionEvent event) {
     	
     	if (event.getAction() == MotionEvent.ACTION_MOVE) {
             thread.mTouchX = event.getX();
             thread.mTouchY = event.getY();
-        } else {
+        } else if (event.getAction() == MotionEvent.ACTION_DOWN)
+        {
+        	if (thread.mMode == PencilThread.STATE_PAUSED)
+        	{
+        		thread.tiltAngle = 0;
+        		thread.angularVelocity = 0;
+        		long now = System.currentTimeMillis();
+        		thread.mLastTime = now;
+        		thread.balanceTimer.start(now);
+        	}
+        } else
+        {
         	thread.mTouchX = -1;
         	thread.mTouchY = -1;
         }
