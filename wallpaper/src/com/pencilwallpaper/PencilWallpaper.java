@@ -67,7 +67,7 @@ public class PencilWallpaper extends WallpaperService {
     class PencilEngine extends Engine {
     	  
     	//time interval between drawing of animation frames in miliseconds
-    	final private static int FRAME_INTERVAL = 10;
+    	final private static int FRAME_INTERVAL = 5;
     	
     	//gravitational parameter
     	private double g = 9.81;
