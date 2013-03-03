@@ -167,19 +167,50 @@ public class PencilDisplayHelper {
         final long sec = TimeUnit.MILLISECONDS.toSeconds(l - TimeUnit.HOURS.toMillis(hr) - TimeUnit.MINUTES.toMillis(min));
         final long ms = TimeUnit.MILLISECONDS.toMillis(l - TimeUnit.HOURS.toMillis(hr) - TimeUnit.MINUTES.toMillis(min) - TimeUnit.SECONDS.toMillis(sec));
         final long tenths = (long) (ms/100);
+        StringBuilder strBuilder = new StringBuilder();
         if (hr > 0)
         {
-        	return String.format("%02d:%02d:%02d.%1d", hr, min, sec, tenths);
+        	//return String.format("%02d:%02d:%02d.%1d", hr, min, sec, tenths);
+        	if (hr < 10) {
+        		strBuilder.append("0");
+        	}
+        	strBuilder.append(hr);
+        	strBuilder.append(":");
+        	if (min < 10) {
+        		strBuilder.append("0");
+        	}
+        	strBuilder.append(min);
+        	strBuilder.append(":");
+        	if (sec < 10) {
+        		strBuilder.append("0");
+        	}
+        	strBuilder.append(sec);
+        	strBuilder.append(".");
+        	strBuilder.append(tenths);
+        	return strBuilder.toString();
         } else if (min > 0)
         {
-        	return String.format("%02d:%02d.%1d", min, sec, tenths);
+        	//return String.format("%02d:%02d.%1d", min, sec, tenths);
+        	if (min < 10) {
+        		strBuilder.append("0");
+        	}
+        	strBuilder.append(min);
+        	strBuilder.append(":");
+        	if (sec < 10) {
+        		strBuilder.append("0");
+        	}
+        	strBuilder.append(sec);
+        	strBuilder.append(".");
+        	strBuilder.append(tenths);
+        	return strBuilder.toString();
         } else
         {
-        	return String.format("%d.%1d", sec, tenths);
+        	//return String.format("%d.%1d", sec, tenths);
+        	strBuilder.append(sec);
+        	strBuilder.append(".");
+        	strBuilder.append(tenths);
+        	return strBuilder.toString();
         }
-
-        //final long ms = TimeUnit.MILLISECONDS.toMillis(l - TimeUnit.HOURS.toMillis(hr) - TimeUnit.MINUTES.toMillis(min) - TimeUnit.SECONDS.toMillis(sec));
-        //return String.format("%02d:%02d:%02d.%03d", hr, min, sec, ms);
     }
 	
 }
