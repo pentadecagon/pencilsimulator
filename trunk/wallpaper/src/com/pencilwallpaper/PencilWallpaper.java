@@ -304,12 +304,15 @@ public class PencilWallpaper extends WallpaperService {
         public void onVisibilityChanged(boolean visible) {
             mVisible = visible;
             if (visible) {
+            	mLastTime = System.currentTimeMillis();
+            	startBalanceTimer();
                 //register sensor listener
                 Sensor accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
                 sensorManager.registerListener(mSensorListener, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
 
                 drawFrame();
             } else {
+            	stopBalanceTimer(false);
                 mHandler.removeCallbacks(mDrawPencil);
                 
                 //unregister sensor listener to save battery
