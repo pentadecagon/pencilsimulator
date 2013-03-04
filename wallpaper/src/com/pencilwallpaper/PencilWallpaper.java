@@ -662,7 +662,7 @@ public class PencilWallpaper extends WallpaperService {
         		if (gravityData != null) {
         			//convert x, y to polar coordinates
         			//the magnitude of the force is always the total magnitude including the z-component
-        			double g = Math.sqrt((gravityData[0] * gravityData[0] + gravityData[1] * gravityData[1] + gravityData[2] * gravityData[2]));
+        			double g = Math.sqrt((gravityData[0] * gravityData[0] + gravityData[1] * gravityData[1]));
         			//we only used the force in the x/y plane
         			double theta = Math.atan2(gravityData[0], gravityData[1]);
 
