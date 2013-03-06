@@ -69,7 +69,7 @@ public class BalanceTimer {
      */
     public void start(long now)
     {
-    	Log.d("pencil", "stopBalanceTimer.start called");
+    	//Log.d("pencil", "stopBalanceTimer.start called");
     	
     	balanceStartTime = now;
     	balanceStopTime = -1;
@@ -91,11 +91,11 @@ public class BalanceTimer {
     		return;
     	}
     	
-    	if (pauseGame)
-    	{
-    		Log.d("pencil", "stopBalanceTimer.stop called with pauseGame=true");
-    	}
-    	//Log.d("pencil", "stopBalanceTimer called with balanceStartTime="+balanceStartTime);
+    	//if (pauseGame)
+    	//{
+    	//	Log.d("pencil", "stopBalanceTimer.stop called with pauseGame=true");
+    	//}
+
     	int timerState = BALANCE_TIMER_STATE_STOPPED;
     	
     	if (balanceStartTime > 0)
@@ -107,21 +107,21 @@ public class BalanceTimer {
         	
         	balanceLastScore = PencilDisplayHelper.formatInterval(sessionDuration);
         	
-        	Log.d("pencil", "stopBalanceTimer.stop: sessionDuration="+sessionDuration);
+        	//Log.d("pencil", "stopBalanceTimer.stop: sessionDuration="+sessionDuration);
         	
     		if (pauseGame && sessionDuration > BALANCE_PAUSE_GAME_MINIMUM_SCORE)
     		{
-    			Log.d("pencil", "stopBalanceTimer.stop: session duration is above min so going to delay game");
+    			//Log.d("pencil", "stopBalanceTimer.stop: session duration is above min so going to delay game");
     			//balanceLastScore = PencilDisplayHelper.formatInterval(sessionDuration);
     			timerState = BALANCE_TIMER_STATE_PAUSED;
     			ownerThread.showTapToStartMessage();
     		} else
     		{
-    			Log.d("pencil", "stopBalanceTimer.stop: session duration is below min so not going to delay game");
+    			//Log.d("pencil", "stopBalanceTimer.stop: session duration is below min so not going to delay game");
     		}
     	} else
     	{
-    		Log.d("pencil", "stopBalanceTimer.stop: balanceStartTime is less than 0");
+    		//Log.d("pencil", "stopBalanceTimer.stop: balanceStartTime is less than 0");
     		balanceLastScore= "0.0";
     	}
     	

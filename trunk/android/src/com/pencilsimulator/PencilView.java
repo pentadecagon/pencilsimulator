@@ -634,7 +634,7 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
 	            		//angular offset between the position the user is touching the pencil and the pencil center
 	            		touchControlOffset = displayHelper.calculateTiltAngleFromTouchPosition(mTouchX, mTouchY, 0.0, isInverted) - tiltAngle;
 	            		//set the balanceStartTime to -1 to show that we are no longer timing how long the pencil is in balance
-	            		Log.d("pencil", "user has touched pencil");
+	            		//Log.d("pencil", "user has touched pencil");
 	            	}
 
 	            	balanceTimerShouldBeActive = !underTouchControl;
@@ -716,7 +716,7 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
 	            if (Math.abs(tiltAngle) >= 0.995*maxTiltAngle)
 	            {
 	            	//reset the timer that records how long since the pencil hit the wall
-	            	Log.d("pencil", "going to stop timer &  pause game");
+	            	//Log.d("pencil", "going to stop timer &  pause game");
 	            	balanceTimer.stop(true, now);
 	            	balanceTimerShouldBeActive = false;
 	            }
@@ -841,7 +841,7 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
          */
         private void triggerFallingPencilAnimation()
         {
-        	Log.d("pencil", "pencil falling animation triggered");
+        	//Log.d("pencil", "pencil falling animation triggered");
     		fallConfig.doAnimation = true;
     		fallConfig.startTime = System.currentTimeMillis();
     		fallAnimator.init(isInverted, tiltAngle, -tiltAngle);
@@ -940,7 +940,7 @@ class PencilView extends SurfaceView implements SurfaceHolder.Callback {
      */
     public void surfaceDestroyed(SurfaceHolder holder) {
 
-    	Log.d("pencil", "called surfaceDestroyed");
+    	//Log.d("pencil", "called surfaceDestroyed");
     	if (thread != null)
     	{
 

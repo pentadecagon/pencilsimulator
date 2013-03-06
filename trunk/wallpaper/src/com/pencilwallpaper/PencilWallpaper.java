@@ -404,7 +404,7 @@ public class PencilWallpaper extends WallpaperService {
 	            		//angular offset between the position the user is touching the pencil and the pencil center
 	            		touchControlOffset = displayHelper.calculateTiltAngleFromTouchPosition(mTouchX, mTouchY, 0.0, false) - tiltAngle;
 	            		//set the balanceStartTime to -1 to show that we are no longer timing how long the pencil is in balance
-	            		Log.d("pencil", "user has touched pencil");
+	            		//Log.d("pencil", "user has touched pencil");
 	            	}
 	            }
 	        	
