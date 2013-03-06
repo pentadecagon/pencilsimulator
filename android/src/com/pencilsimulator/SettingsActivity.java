@@ -26,7 +26,7 @@ public class SettingsActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_settings);
 		
-		Log.d("pencil", "called SettingsActivity.onCreate");
+		//Log.d("pencil", "called SettingsActivity.onCreate");
 		
 		gravityFactorLocal = PencilView.gravityFactor;
 		

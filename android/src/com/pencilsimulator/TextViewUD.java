@@ -29,8 +29,8 @@ public class TextViewUD extends TextView {
 
         float py = this.getHeight()/2.0f;
         float px = this.getWidth()/2.0f;
-        Log.d("testUD", String.format("w: %d h: %d ", this.getWidth(), this.getHeight()));
-        Log.d("testUD", String.format("w: %f h: %f ", py, px));
+        //Log.d("testUD", String.format("w: %d h: %d ", this.getWidth(), this.getHeight()));
+        //Log.d("testUD", String.format("w: %f h: %f ", py, px));
         canvas.rotate(180, px, py);
 
         super.onDraw(canvas);
