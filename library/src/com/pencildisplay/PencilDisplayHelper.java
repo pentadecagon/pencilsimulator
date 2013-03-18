@@ -2,6 +2,10 @@ package com.pencildisplay;
 
 import java.util.concurrent.TimeUnit;
 
+import android.util.Log;
+
+import com.pencilanimations.ExplosionConfig;
+
 /** Contains methods to help with the display of the pencil simulator. */
 
 public class PencilDisplayHelper {
@@ -212,5 +216,54 @@ public class PencilDisplayHelper {
         	return strBuilder.toString();
         }
     }
+    
+    /**
+     * Calculate position of explosion relative to pencil.
+     * 
+     * @param ExplosionConfig config The explosion config
+     * @param double angularVelocity The pencil's angular velocity
+     * @param double maxTiltAngle The maximum allowed tilt angle before the pencil hits the wall
+     * @param boolean isInverted Whether or not screen is inverted
+     * 
+     * @return float X position of the explosion relative to the pencil
+     * @return float Y position of the explosion relative to the pencil
+     */
+    public int[] getExplosionPosition(ExplosionConfig config, double angularVelocity, double maxTiltAngle,
+    		boolean isInverted)
+    {
+    	angularVelocity = Math.abs(angularVelocity);
+
+    	int[] position = new int[2];
+    	
+    	if (isInverted)
+    	{
+    		position[0] = ((config.direction < 0) ? ((int) ( 0.985 * mCanvasWidth)) : ((int) (0.015 * mCanvasWidth)));
+    		position[1] = (int) (1.0 * pencilDisplayLength * (float) Math.cos(maxTiltAngle));
+    	} else
+    	{   	
+	    	float paddingX, paddingY;
+	    	float limit1 = 0.3f;
+	    	float limit2 = 0.9f;
+	    	if (angularVelocity > limit2)
+	    	{
+	    		paddingX = 0.01f * mCanvasWidth;
+	    		paddingY = 1.02f * pencilDisplayLength * (float) Math.cos(maxTiltAngle);
+	    	} else if (angularVelocity < limit1)
+	    	{
+	    		paddingX = 0.0f;
+	    		paddingY = 0.97f * pencilDisplayLength * (float) Math.cos(maxTiltAngle);
+	    	} else
+	    	{
+	    		float progress = ((float) angularVelocity - limit1)/(limit2 - limit1);
+	    		paddingX = progress * 0.01f * mCanvasWidth;
+	    		paddingY = (0.97f + progress * 0.05f) * pencilDisplayLength * (float) Math.cos(maxTiltAngle);
+	    	}
+	    	position[0] = ((config.direction > 0) ? ((int) (mCanvasWidth - paddingX)) : ((int) (paddingX)));
+	    	position[1] = (int) (mCanvasHeight - paddingY);
+    	}
+    	
+    	return position;       	
+    }
+
 	
 }

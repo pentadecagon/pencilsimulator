@@ -493,8 +493,10 @@ public class PencilWallpaper extends WallpaperService {
         	//config.explosionXPosition = ((direction > 0) ? ((int) ( 0.5 * mCanvasWidth + 0.5 * pencilDisplayWidth)) : ((int) (0.5 * mCanvasWidth -  0.5 * pencilDisplayWidth)));
         	//config.explosionYPosition = (int) (mCanvasHeight - 0.98f * pencilDisplayLength);
 
-        	config.explosionXPosition = ((config.direction > 0) ? ((int) ( 0.99 * mCanvasWidth)) : ((int) (0.01 * mCanvasWidth)));
-        	config.explosionYPosition = (int) (mCanvasHeight - 1.02 * pencilDisplayLength * (float) Math.cos(maxTiltAngle));
+        	int[] position = displayHelper.getExplosionPosition(config, angularVelocity, maxTiltAngle, false);
+        	
+        	config.explosionXPosition = position[0];
+        	config.explosionYPosition = position[1];
 
         	if (EXPLODE_STYLE == 1)
         	{
